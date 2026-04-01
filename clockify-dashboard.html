@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team Time Dashboard – March 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f0f2f5;--card:#fff;--border:#e2e8f0;--text:#1a202c;--muted:#718096;
+  --accent:#4f46e5;--dev:#4f46e5;--mtg:#f59e0b;--green:#10b981;--red:#ef4444;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text)}
+/* header */
+header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:var(--sh)}
+.h1{font-size:1.2rem;font-weight:700}.h2{font-size:.75rem;color:var(--muted);margin-top:2px}
+.badge{background:#eef2ff;color:var(--accent);font-size:.7rem;font-weight:700;padding:3px 11px;border-radius:20px}
+/* tabs */
+.tabs{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:2px;overflow-x:auto}
+.tab{padding:12px 18px;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s}
+.tab:hover{color:var(--text)}.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+/* layout */
+.main{max-width:1400px;margin:0 auto;padding:22px 20px}
+.tc{display:none}.tc.on{display:block}
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:12px}
+.g1{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.g22{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+/* cards */
+.card{background:var(--card);border-radius:12px;padding:18px 20px;box-shadow:var(--sh);border:1px solid var(--border)}
+.ct{font-size:.86rem;font-weight:700;margin-bottom:2px}.cs{font-size:.7rem;color:var(--muted);margin-bottom:12px}
+/* kpi */
+.kpi{background:var(--card);border-radius:12px;padding:16px 18px;box-shadow:var(--sh);border:1px solid var(--border)}
+.kl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px}
+.kv{font-size:1.85rem;font-weight:700;line-height:1}.ks{font-size:.7rem;color:var(--muted);margin-top:4px}
+.kdev .kv{color:var(--dev)}.kmtg .kv{color:var(--mtg)}.keff .kv{color:var(--green)}
+/* legend */
+.leg{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.li{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--muted)}
+.ld{width:9px;height:9px;border-radius:2px}
+/* buttons */
+.btns{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
+.btn{font-size:.7rem;font-weight:600;padding:3px 10px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;border-radius:5px;transition:all .15s}
+.btn:hover,.btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* table */
+.tw{overflow-x:auto;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{background:var(--bg);padding:8px 10px;text-align:left;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+th:hover,.th-s{color:var(--accent)}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff;cursor:pointer}
+/* mini bar */
+.bc{display:flex;align-items:center;gap:6px}
+.mb{height:5px;border-radius:3px;background:var(--border);min-width:40px;flex:1;overflow:hidden}
+.mf{height:100%;border-radius:3px}
+/* pills */
+.pill{display:inline-block;padding:1px 7px;border-radius:20px;font-size:.65rem;font-weight:700}
+.phi{background:#d1fae5;color:#065f46}.pmd{background:#fef3c7;color:#92400e}.plo{background:#fee2e2;color:#991b1b}
+.pbl{background:#eef2ff;color:#4f46e5}.pgr{background:#f1f5f9;color:#64748b}
+/* ── DRILL-DOWN PANEL ─────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;opacity:0;transition:opacity .2s}
+.overlay.open{display:block;opacity:1}
+.panel{position:fixed;top:0;right:-500px;width:480px;height:100vh;background:var(--card);z-index:400;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,.12);transition:right .25s ease;display:flex;flex-direction:column}
+.panel.open{right:0}
+.ph{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:1}
+.ph h2{font-size:1rem;font-weight:700}.ph .cls{font-size:1.3rem;cursor:pointer;color:var(--muted);line-height:1;padding:4px 8px;border-radius:6px}
+.ph .cls:hover{background:var(--bg);color:var(--text)}
+.pbody{padding:18px 20px;flex:1}
+.pstat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.ps{background:var(--bg);border-radius:8px;padding:10px 12px;text-align:center}
+.psl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
+.psv{font-size:1.2rem;font-weight:700}
+.psec{margin-bottom:18px}
+.psec h3{font-size:.76rem;font-weight:700;color:var(--text);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.mini-chart-wrap{height:160px;position:relative}
+.flag{background:#fff8f0;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;font-size:.72rem;color:#92400e;margin-bottom:8px}
+.flag-low{background:#fef9c3;border-color:#fde68a;color:#92400e}
+/* client cards */
+.ccg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.cc{background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border);box-shadow:var(--sh)}
+.cch{display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;margin-bottom:6px}
+.ccd{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ccv{font-size:1.4rem;font-weight:700;margin-bottom:2px}
+.ccs{font-size:.67rem;color:var(--muted)}
+.ccbar{height:5px;border-radius:3px;background:var(--border);margin-top:7px;overflow:hidden;display:flex}
+/* wt colors */
+.wt-bug{color:#ef4444}.wt-feat{color:#10b981}.wt-sup{color:#3b82f6}.wt-unk{color:#94a3b8}.wt-mtg{color:#f59e0b}
+/* confidence table */
+.conf-hi{color:#10b981;font-weight:700}.conf-md{color:#f59e0b;font-weight:700}.conf-lo{color:#ef4444;font-weight:700}
+/* util */
+.ub{height:12px;border-radius:6px;background:#eef2ff;flex:1;min-width:60px;overflow:hidden}
+.ubf{height:100%;border-radius:6px}
+/* ── DEVOPS LAYER ─────────────────────────────────── */
+.dv-notice{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;font-size:.76rem;color:#92400e;margin-bottom:14px;line-height:1.6}
+.dv-stat-mini{text-align:center;background:var(--bg);border-radius:8px;padding:9px 8px}
+.dv-stat-mini .l{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:3px}
+.dv-stat-mini .v{font-size:1.1rem;font-weight:700;line-height:1}
+.role-dl{color:#10b981;font-weight:700}.role-rv{color:#8b5cf6;font-weight:700}.role-bl{color:#4f46e5;font-weight:700}
+.role-card-dl{border-top:3px solid #10b981}.role-card-rv{border-top:3px solid #8b5cf6}.role-card-bl{border-top:3px solid #4f46e5}
+.member-row{font-size:.72rem;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text)}
+.member-row:last-child{border-bottom:none}
+.cx-bar{height:10px;border-radius:5px;overflow:hidden;display:flex;gap:0}
+.cx-legend{display:flex;gap:10px;font-size:.67rem;margin-top:3px}
+.wm-bar{width:72px;height:7px;border-radius:3px;overflow:hidden;display:flex}
+/* panel DevOps grid: 3 columns */
+.pstat-dv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pstat-dv .ps{padding:8px 10px}
+/* panel ticket/PR mix inline numbers */
+.pmix{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 12px}
+.pmix-item{text-align:center}
+.pmix-item .mv{font-size:1.35rem;font-weight:700;line-height:1}
+.pmix-item .ml{font-size:.6rem;color:var(--muted);margin-top:1px}
+@media(max-width:900px){.krow,.g2,.g3,.g22,.ccg{grid-template-columns:1fr!important}.panel{width:100%;right:-100%}}
+</style>
+</head>
+<body>
+
+<header>
+  <div><div class="h1">Team Time Dashboard</div><div class="h2">Nourhan Hosny's Workspace · 20 members · 800 entries · 172 tickets · 85 PRs · Updated 31/03/2026</div></div>
+  <span class="badge">March 2026</span>
+</header>
+
+<div class="tabs">
+  <div class="tab on"  onclick="ST('ov',this)">Overview</div>
+  <div class="tab"     onclick="ST('pr',this)">Products</div>
+  <div class="tab"     onclick="ST('cl',this)">Clients</div>
+  <div class="tab"     onclick="ST('wt',this)">Work Types</div>
+  <div class="tab"     onclick="ST('ut',this)">Utilization</div>
+  <div class="tab"     onclick="ST('dv',this)">⚙ DevOps Delivery</div>
+</div>
+
+<!-- ══════════════════════ OVERVIEW ══════════════════════ -->
+<div id="tc-ov" class="tc on"><div class="main">
+  <div class="krow">
+    <div class="kpi"><div class="kl">Total Hours</div><div class="kv">1,457</div><div class="ks">20 team members</div></div>
+    <div class="kpi kdev"><div class="kl">Dev Hours</div><div class="kv">1,260</div><div class="ks">Non-meeting work</div></div>
+    <div class="kpi kmtg"><div class="kl">Meeting Hours</div><div class="kv">197</div><div class="ks">Stand-ups, syncs, demos</div></div>
+    <div class="kpi keff"><div class="kl">Dev Efficiency</div><div class="kv">86%</div><div class="ks">of total time is dev</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Hours by Team Member</div>
+      <div class="cs">Click any bar or row to drill into that person's detail · <span style="color:#ef4444">dashed line</span> = expected capacity (119.5 h)</div>
+      <div class="btns">
+        <button class="btn on" id="ts-total" onclick="sortTeam('total')">Total</button>
+        <button class="btn" id="ts-dev"   onclick="sortTeam('dev')">Dev</button>
+        <button class="btn" id="ts-mtg"   onclick="sortTeam('mtg')">Meetings</button>
+      </div>
+      <div style="height:340px;position:relative"><canvas id="teamChart"></canvas></div>
+      <div class="leg"><div class="li"><div class="ld" style="background:var(--dev)"></div>Development</div><div class="li"><div class="ld" style="background:var(--mtg)"></div>Meetings</div><div class="li"><div class="ld" style="background:#ef4444;width:16px;height:2px;border-radius:0"></div>Expected (119.5 h)</div></div>
+    </div>
+    <div class="card">
+      <div class="ct">Dev vs Meeting</div><div class="cs">Overall split — March 2026</div>
+      <div style="height:230px;position:relative"><canvas id="donutOv"></canvas></div>
+      <div style="text-align:center;font-size:.7rem;color:var(--muted);margin-top:6px">1,260h dev · 197h meetings</div>
+    </div>
+  </div>
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Daily Activity</div><div class="cs">Dev vs meeting per day · shaded = Eid holiday (Mar 19–23)</div>
+      <div style="height:190px;position:relative"><canvas id="dailyChart"></canvas></div>
+      <div class="leg"><div class="li"><div class="ld" style="background:var(--dev)"></div>Development</div><div class="li"><div class="ld" style="background:var(--mtg)"></div>Meetings</div></div>
+    </div>
+  </div>
+  <div class="g22">
+    <div class="card">
+      <div class="ct">PR Reviewers</div>
+      <div class="cs">Team members who peer-reviewed pull requests in March 2026</div>
+      <div class="tw"><table id="prRevTbl">
+        <thead><tr><th>Reviewer</th><th>PRs Reviewed</th><th>PRs Authored</th><th>Role</th></tr></thead>
+        <tbody id="prRevBody"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="ct">Above / Below Expected Hours</div>
+      <div class="cs">Full-timers only · expected = 119.5 h (Ramadan-adjusted March)</div>
+      <div style="height:200px;position:relative"><canvas id="aboveBelowChart"></canvas></div>
+    </div>
+  </div>
+  <div class="g1">
+    <div class="card">
+      <div class="ct">All Team Members</div>
+      <div class="cs" id="ov-sub">Click a row or bar to drill down · click column to sort · <span style="color:#10b981">▲</span> above expected · <span style="color:#ef4444">▼</span> below expected</div>
+      <div class="tw"><table id="memberTbl">
+        <thead><tr>
+          <th onclick="sortM('name')">Name</th>
+          <th onclick="sortM('dev')" class="th-s">Dev Hrs ↓</th>
+          <th onclick="sortM('mtg')">Mtg Hrs</th>
+          <th onclick="sortM('total')">Total Hrs</th>
+          <th onclick="sortM('expected')">Expected</th>
+          <th onclick="sortM('delta')">+/−</th>
+          <th onclick="sortM('eff')">Dev %</th>
+          <th onclick="sortM('tickets')">Tickets</th>
+          <th onclick="sortM('prRev')">PR Rev</th>
+          <th>Type</th><th>Top Products</th>
+        </tr></thead>
+        <tbody id="mtbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════════════════ PRODUCTS ══════════════════════ -->
+<div id="tc-pr" class="tc"><div class="main">
+  <div class="g2">
+    <div class="card">
+      <div class="ct">Hours by Product Family</div><div class="cs">Dev vs meeting per group</div>
+      <div style="height:270px;position:relative"><canvas id="prodGrpChart"></canvas></div>
+      <div class="leg"><div class="li"><div class="ld" style="background:var(--dev)"></div>Development</div><div class="li"><div class="ld" style="background:var(--mtg)"></div>Meetings</div></div>
+    </div>
+    <div class="card">
+      <div class="ct">Product Mix</div><div class="cs">Share of total hours</div>
+      <div style="height:270px;position:relative"><canvas id="prodDonut"></canvas></div>
+    </div>
+  </div>
+  <div class="g1">
+    <div class="card">
+      <div class="ct">All Products</div><div class="cs">Click column to sort</div>
+      <div class="tw"><table id="prodTbl">
+        <thead><tr>
+          <th onclick="sortP('name')">Product</th>
+          <th onclick="sortP('group')">Family</th>
+          <th onclick="sortP('dev')" class="th-s">Dev Hrs ↓</th>
+          <th onclick="sortP('mtg')">Mtg Hrs</th>
+          <th onclick="sortP('total')">Total Hrs</th>
+          <th onclick="sortP('eff')">Dev %</th>
+        </tr></thead>
+        <tbody id="ptbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════════════════ CLIENTS ══════════════════════ -->
+<div id="tc-cl" class="tc"><div class="main">
+  <div id="ccards" class="ccg"></div>
+  <div class="g22">
+    <div class="card">
+      <div class="ct">Hours by Client</div><div class="cs">Dev vs meeting per client</div>
+      <div style="height:260px;position:relative"><canvas id="clientChart"></canvas></div>
+      <div class="leg"><div class="li"><div class="ld" style="background:var(--dev)"></div>Development</div><div class="li"><div class="ld" style="background:var(--mtg)"></div>Meetings</div></div>
+    </div>
+    <div class="card">
+      <div class="ct">Client Mix</div><div class="cs">Share of total hours by client</div>
+      <div style="height:260px;position:relative"><canvas id="clientDonut"></canvas></div>
+    </div>
+  </div>
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Classification Notes</div>
+      <div style="font-size:.78rem;line-height:1.75;color:var(--text)">
+        <p>• <strong>DET</strong> — All Fototracker project hours classified as DET this month (confirmed rule). Additional DET entries detected via keyword matching in descriptions.</p>
+        <p>• <strong>ENEO / UAQ</strong> — Detected via keyword matching in entry descriptions. Not explicitly tagged in Clockify. Medium confidence; recommend adding client tags in Clockify for future accuracy.</p>
+        <p>• <strong>KFH</strong> — Includes KFH project entries plus entries where "KFH" appears in descriptions (e.g. Fotognize work for KFH).</p>
+        <p>• <strong>Fotopia (Internal)</strong> — All work where no client keyword was found, including all Fotocapture work with no client mention.</p>
+        <p>• <strong>Digitizeme</strong> — SaaS multi-tenant platform. Detected via "digitizeme" / "digitize me" in descriptions (5 entries, 2.75h).</p>
+        <p>• <strong>RTA</strong> — 1 entry (0.5h meeting) detected. Very low confidence; verify manually.</p>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════════════════ WORK TYPES ══════════════════════ -->
+<div id="tc-wt" class="tc"><div class="main">
+  <div class="krow">
+    <div class="kpi"><div class="kl">Feature Work</div><div class="kv" style="color:#10b981">318h</div><div class="ks">106 entries · new dev</div></div>
+    <div class="kpi"><div class="kl">Bug Fixes</div><div class="kv" style="color:#ef4444">181h</div><div class="ks">103 entries</div></div>
+    <div class="kpi"><div class="kl">Support</div><div class="kv" style="color:#3b82f6">144h</div><div class="ks">102 entries · CRs</div></div>
+    <div class="kpi"><div class="kl">Unclassified</div><div class="kv" style="color:#94a3b8">618h</div><div class="ks">253 entries · no keyword</div></div>
+  </div>
+  <div class="g22">
+    <div class="card">
+      <div class="ct">Work Type Breakdown (Non-Meeting Hours)</div><div class="cs">Based on description keyword matching</div>
+      <div style="height:260px;position:relative"><canvas id="wtChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">Work Type by Team Member</div><div class="cs">Stacked hours per person</div>
+      <div style="height:260px;position:relative"><canvas id="wtMemberChart"></canvas></div>
+    </div>
+  </div>
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Classification Confidence Report</div>
+      <div class="cs">253 entries (51%) could not be classified due to missing or unclear descriptions — flagged below</div>
+      <div class="flag">⚠ <strong>253 entries marked Unknown</strong> — no keyword matched in description. Most common in Fotopia internal work and entries logged with no description. Adding descriptive task names in Clockify would significantly improve this.</div>
+      <div class="flag flag-low">🔍 <strong>ENEO / UAQ client detection</strong> — classified via keyword search in descriptions (medium confidence). Recommend adding explicit client tags in Clockify to confirm.</div>
+      <div style="margin-top:12px;font-size:.76rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Detection Rules Applied</div>
+      <table id="rulesTable" style="font-size:.75rem">
+        <thead><tr><th>Work Type</th><th>Keywords Used</th><th>Entries Matched</th><th>Hours</th><th>Confidence</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill" style="background:#fee2e2;color:#991b1b">Bug Fix</span></td><td style="color:var(--muted)">bug, fix, issue, defect, error, crash</td><td>81</td><td>143.34h</td><td class="conf-hi">High (first match wins)</td></tr>
+          <tr><td><span class="pill" style="background:#dcfce7;color:#166534">Feature</span></td><td style="color:var(--muted)">develop, implement, build, creat, feature, integrat, refactor, design, architect</td><td>55</td><td>163.68h</td><td class="conf-md">Medium</td></tr>
+          <tr><td><span class="pill" style="background:#dbeafe;color:#1e40af">Support</span></td><td style="color:var(--muted)">support, cr , change request, troubleshoot</td><td>12</td><td>25.46h</td><td class="conf-md">Medium</td></tr>
+          <tr><td><span class="pill pgr">Unknown</span></td><td style="color:var(--muted)">no keyword found or no description</td><td>349</td><td>633.75h</td><td class="conf-lo">Low – flagged</td></tr>
+          <tr><td><span class="pill" style="background:#fef3c7;color:#92400e">Meeting</span></td><td style="color:var(--muted)">meeting, standup, sync, scrum, demo, review…</td><td>180</td><td>193.61h</td><td class="conf-hi">High</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div></div>
+
+<!-- ══════════════════════ UTILIZATION ══════════════════════ -->
+<div id="tc-ut" class="tc"><div class="main">
+  <div class="krow" style="grid-template-columns:repeat(6,1fr)">
+    <div class="kpi"><div class="kl">Expected Capacity</div><div class="kv">119.5h</div><div class="ks">per full-timer · Ramadan-adj.</div></div>
+    <div class="kpi keff"><div class="kl">Avg Utilization</div><div class="kv" id="avgUtil">—</div><div class="ks">full-timers only</div></div>
+    <div class="kpi"><div class="kl">Avg Hours Logged</div><div class="kv" id="avgLog">—</div><div class="ks">full-timers only</div></div>
+    <div class="kpi" style="border-left:3px solid #10b981"><div class="kl">Above Expected</div><div class="kv" id="aboveCount" style="color:#10b981">—</div><div class="ks" id="aboveNames" style="font-size:.65rem">—</div></div>
+    <div class="kpi" style="border-left:3px solid #ef4444"><div class="kl">Below Expected</div><div class="kv" id="belowCount" style="color:#ef4444">—</div><div class="ks" id="belowNames" style="font-size:.65rem">—</div></div>
+    <div class="kpi"><div class="kl">Ramadan Adj.</div><div class="kv">5.5h</div><div class="ks">Mar 1–18 · 7h/day after</div></div>
+  </div>
+  <div class="g1"><div class="card">
+    <div class="ct">Full-Timer Utilization vs Expected</div>
+    <div class="cs">Logged vs available capacity · <span style="color:#10b981">green ≥100%</span> · indigo 80–99% · grey &lt;80%</div>
+    <div style="height:240px;position:relative"><canvas id="utilChart"></canvas></div>
+  </div></div>
+  <div class="g1"><div class="card">
+    <div class="ct">Full-Timer Detail</div><div class="cs">Sun–Thu working week · Eid (Mar 19–23) excluded from capacity</div>
+    <div class="tw"><table>
+      <thead><tr><th>Name</th><th>Expected</th><th>Logged</th><th>+/− Expected</th><th>Dev</th><th>Meetings</th><th>Utilization</th><th>Notes</th></tr></thead>
+      <tbody id="utilBody"></tbody>
+    </table></div>
+  </div></div>
+  <div class="g1"><div class="card">
+    <div class="ct">Part-Timer Hours</div><div class="cs">11 part-timers · no fixed capacity baseline</div>
+    <div class="tw"><table>
+      <thead><tr><th>Name</th><th>Logged</th><th>Dev</th><th>Meetings</th><th>Dev %</th><th>Top Products</th></tr></thead>
+      <tbody id="partBody"></tbody>
+    </table></div>
+  </div></div>
+</div></div>
+
+<!-- ══════════════════════ DEVOPS DELIVERY ══════════════════════ -->
+<div id="tc-dv" class="tc"><div class="main">
+
+  <div class="dv-notice" style="background:#f0fdf4;border-color:#86efac;color:#166534">
+    ✅ <strong>Live data — Azure DevOps org: Fotopiatech</strong> · Attribution model: March 2026 ·
+    <strong>172 closed tickets · 85 merged PRs</strong> (15 standup/meeting tickets excluded from Omar Alaa) · Assignment history fetched per ticket.
+    <strong>Attribution rule:</strong> Credit goes to the last non-QA assignee in the ticket's assignment chain.
+    QA gate = Aesha, Ijaz, or Farah Eid appearing in chain — confirms a proper handoff.
+    If no QA gate detected, most-recent assignee is credited (flagged as <em>inferred</em>).
+    PR reviewers (e.g. Sameh) and PR-only contributors (Nour, Yousef) are tracked separately.
+    <span style="background:#dcfce7;padding:1px 6px;border-radius:4px;font-size:.7rem;margin-left:4px">green QA% = ≥70% tickets confirmed via handoff</span>
+    <span style="background:#fef9c3;padding:1px 6px;border-radius:4px;font-size:.7rem;margin-left:4px">ADO only = active in ADO, no Clockify match</span>
+  </div>
+
+  <!-- 6-column KPI strip -->
+  <div class="krow" style="grid-template-columns:repeat(6,1fr);margin-bottom:14px" id="dv-krow"></div>
+
+  <!-- Contribution-type role cards -->
+  <div class="g3" id="dv-roles" style="margin-bottom:12px"></div>
+
+  <!-- Main resource delivery table -->
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Resource Delivery Overview</div>
+      <div class="cs">All metrics shown per team member — click any row to open the detail panel</div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th>Name</th>
+            <th title="Tickets attributed via QA-flow assignment history">Attributed</th>
+            <th title="% confirmed via QA handoff — green ≥70% · amber ≥30% · grey &lt;30%">QA Flow%</th>
+            <th title="Bug · Feature · Task count">B / F / T</th>
+            <th title="Pull requests authored">PR Auth</th>
+            <th title="Pull requests reviewed">PR Rev</th>
+            <th title="Pull requests merged">PR Mrg</th>
+            <th title="Low=1 · Med=2 · High=3 — complexity inferred from ticket type + cycle time">Wt. Score</th>
+            <th title="Average complexity level">Avg Cmplx</th>
+            <th title="Avg days Activated → Closed">Cycle Time</th>
+            <th title="Sprint / version distribution">Sprint Mix</th>
+            <th title="Bug · Feature · Task proportion">Work Mix</th>
+            <th title="Contribution pattern">Role</th>
+          </tr></thead>
+          <tbody id="dv-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div class="g22">
+    <div class="card">
+      <div class="ct">Work Type Mix per Resource</div>
+      <div class="cs">Bug Fix vs Feature vs Task — how each person spends their delivery capacity</div>
+      <div style="height:290px;position:relative"><canvas id="dv-mixChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">PR Activity (Supplementary)</div>
+      <div class="cs">PRs are not used for attribution — shown for supplementary context only</div>
+      <div style="height:290px;position:relative"><canvas id="dv-prChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Quality signals table -->
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Quality Signals</div>
+      <div class="cs">Flagged items: high reopen rates · missing PR links · cycle time outliers · lead time spikes</div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th>Name</th><th>Severity</th><th>Signal</th><th>Detail / Recommendation</th>
+          </tr></thead>
+          <tbody id="dv-quality"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint / Version Breakdown -->
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Sprint / Version Breakdown</div>
+      <div class="cs">Attributed ticket count per developer per sprint or version — ★ = core team</div>
+      <div class="tw"><table id="dv-sprint-table"><tbody id="dv-sprint-tbody"><tr><td colspan="8" style="text-align:center;padding:16px;color:var(--muted)">Loading…</td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- Attribution model legend -->
+  <div class="g1">
+    <div class="card">
+      <div class="ct">Attribution Model — No Silent Assumptions</div>
+      <div class="cs">How each ticket is credited to a developer</div>
+      <div style="font-size:.76rem;line-height:1.9;color:var(--text)">
+        <p><strong>Step 1 — QA-flow handoff (high confidence):</strong> For each closed ticket, assignment history is fetched from Azure DevOps.
+          If the ticket was ever assigned to <strong>Aesha Hassen</strong> or <strong>Ijaz Ahmed</strong> (testers) or <strong>Sameh Amnoun</strong> (code reviewer),
+          the person who was assigned directly <em>before</em> that transition is credited as the delivering developer.
+          <span class="pill phi" style="font-size:.65rem">green QA%</span> = ≥ 70% of tickets via this method.</p>
+        <p style="margin-top:6px"><strong>Step 2 — Most-recent assignee (inferred, lower confidence):</strong> If no QA handoff is found in the ticket's history,
+          the most recent non-QA, non-reviewer assignee is credited. These are flagged with
+          <span class="pill pgr" style="font-size:.65rem">grey QA%</span> in the table and in quality signals.</p>
+        <p style="margin-top:6px"><strong>Exclusions:</strong> Aesha Hassen &amp; Ijaz Ahmed (QA testers) and Sameh Amnoun (code reviewer) are excluded from attribution in all cases — they are the gate that triggers attribution, not the recipients of it.
+          Tickets with no identifiable developer are unattributed (9 tickets, not shown in table).</p>
+        <p style="margin-top:6px"><strong>Role classification:</strong> Delivery-heavy = ticket count×2 + PRs authored > 1.2× review score and ≥8 tickets or PRs.
+          Review-heavy = ≥8 review/approve actions and review score > 1.5× delivery score. Balanced = neither threshold.
+          Role is based on ticket attribution + PR activity — it reflects contribution pattern, not seniority.</p>
+        <p style="margin-top:6px"><strong>Quality signal thresholds:</strong> Reopen rate ≥15% = High · 8–14% = Medium.
+          Cycle time &gt; 1.6× team average flagged. 0% QA confidence flagged as low-confidence.
+          ADO-only contributors flagged for time-tracking follow-up. All thresholds are visible — no hidden penalties.</p>
+      </div>
+    </div>
+  </div>
+
+</div></div>
+
+<!-- ══════════════════════ DRILL-DOWN PANEL ══════════════════════ -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="ph">
+    <h2 id="panelName">Team Member</h2>
+    <span class="cls" onclick="closePanel()">✕</span>
+  </div>
+  <div class="pbody">
+    <div class="pstat" id="panelStats"></div>
+    <div class="psec"><h3>Hours by Client</h3><div class="mini-chart-wrap"><canvas id="panelClientChart"></canvas></div></div>
+    <div class="psec"><h3>Hours by Product</h3><div class="mini-chart-wrap"><canvas id="panelProdChart"></canvas></div></div>
+    <div class="psec"><h3>Work Type Distribution</h3><div class="mini-chart-wrap"><canvas id="panelWtChart"></canvas></div></div>
+    <div class="psec" id="panelFlags"></div>
+    <!-- DevOps extension — shown when data exists -->
+    <div id="panelDvSection" style="display:none">
+      <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:4px">
+        <div style="font-size:.76rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:10px">⚙ DevOps Delivery</div>
+        <div class="pstat-dv" id="panelDvStats"></div>
+        <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px">Tickets by Type</div>
+        <div class="pmix" id="panelTicketMix"></div>
+        <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px">PR Activity</div>
+        <div class="pmix" id="panelPRMix"></div>
+        <div style="font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:6px">Complexity Distribution</div>
+        <div id="panelComplexity" style="margin-bottom:10px"></div>
+        <div id="panelDvFlags"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════ DATA ══════════════════
+const CLIENT_COLORS = {
+  KFH:'#0ea5e9', DET:'#8b5cf6', ENEO:'#f97316', UAQ:'#ec4899',
+  RTA:'#84cc16', Fotopia:'#94a3b8', Demos:'#6366f1', Digitizeme:'#10b981'
+};
+const GRP_COLORS = {
+  Fotognize:'#8b5cf6', Capture:'#f59e0b', Fotofind:'#3b82f6',
+  Fototracker:'#0ea5e9', 'CTC Application':'#ec4899', 'DET Project':'#8b5cf6',
+  Internal:'#94a3b8', Demos:'#10b981', Fotoverifai:'#f43f5e', Other:'#cbd5e1'
+};
+const WT_COLORS = {'Bug Fix':'#ef4444', Feature:'#10b981', Support:'#3b82f6', Unknown:'#94a3b8', Meeting:'#f59e0b'};
+
+const clientStats = {
+  KFH:{dev:50.91,mtg:14.7,total:65.61},
+  DET:{dev:74.88,mtg:3.28,total:78.16},
+  ENEO:{dev:37.7,mtg:8,total:45.7},
+  UAQ:{dev:12.55,mtg:2.5,total:15.05},
+  RTA:{dev:0,mtg:0.5,total:0.5},
+  Fotopia:{dev:769.77,mtg:163.13,total:932.9},
+  Demos:{dev:18.92,mtg:0.25,total:19.17},
+  Digitizeme:{dev:1.5,mtg:1.25,total:2.75}
+};
+
+const productStats = {
+  'CTC Application':{dev:18.15,mtg:4.78,total:22.94,group:'CTC Application'},
+  'Fototracker':{dev:63.38,mtg:1.78,total:65.16,group:'Fototracker'},
+  'Fotognize 1.5':{dev:68.16,mtg:0,total:68.16,group:'Fotognize'},
+  'Fotognize 2.0':{dev:179.58,mtg:61.32,total:240.9,group:'Fotognize'},
+  'Fotognize (Unknown)':{dev:0.15,mtg:1,total:1.15,group:'Fotognize'},
+  'Capture 6.5':{dev:5.25,mtg:0.75,total:6,group:'Capture'},
+  'Capture 6.6':{dev:62.39,mtg:7.44,total:69.83,group:'Capture'},
+  'Capture 6.7':{dev:32.88,mtg:6,total:38.88,group:'Capture'},
+  'Capture (No Version)':{dev:101.8,mtg:43.35,total:145.15,group:'Capture'},
+  'Capture (Testing)':{dev:47.92,mtg:0.5,total:48.42,group:'Capture'},
+  'Fotofind 1.0':{dev:107.14,mtg:22.15,total:129.28,group:'Fotofind'},
+  'Fotofind 1.1 AI':{dev:30.83,mtg:8.67,total:39.5,group:'Fotofind'},
+  'Fotoverifai':{dev:0.75,mtg:0.25,total:1,group:'Fotoverifai'},
+  'DET Project':{dev:11.5,mtg:1.5,total:13,group:'DET Project'},
+  'Demo Support':{dev:18.92,mtg:0.25,total:19.17,group:'Demos'},
+  'Fotopia':{dev:155.65,mtg:32.54,total:188.19,group:'Internal'},
+  'R&D':{dev:29.12,mtg:0,total:29.12,group:'Internal'},
+  'Marketing':{dev:6.83,mtg:0,total:6.83,group:'Internal'},
+  'Miscellaneous':{dev:25.83,mtg:1.33,total:27.17,group:'Internal'}
+};
+
+const workTypeStats = {
+  'Bug Fix':{hrs:143.34,count:81}, Feature:{hrs:163.68,count:55},
+  Support:{hrs:25.46,count:12}, Unknown:{hrs:633.75,count:349}, Meeting:{hrs:193.61,count:180}
+};
+
+const dailyData = [
+  {d:'Mar 1',dev:39.93,mtg:13.65},{d:'Mar 2',dev:57.34,mtg:16.67},
+  {d:'Mar 3',dev:53.36,mtg:14.71},{d:'Mar 4',dev:57.15,mtg:8.35},
+  {d:'Mar 5',dev:63.1,mtg:7.41},  {d:'Mar 6',dev:29.74,mtg:0},
+  {d:'Mar 7',dev:21.65,mtg:0},    {d:'Mar 8',dev:38.51,mtg:7.44},
+  {d:'Mar 9',dev:64.36,mtg:9.48}, {d:'Mar 10',dev:65.61,mtg:11.71},
+  {d:'Mar 11',dev:47.43,mtg:7.76},{d:'Mar 12',dev:44.6,mtg:11.4},
+  {d:'Mar 13',dev:22.9,mtg:0.78}, {d:'Mar 14',dev:12.55,mtg:0},
+  {d:'Mar 15',dev:56.88,mtg:20.71},{d:'Mar 16',dev:65.76,mtg:9.07},
+  {d:'Mar 17',dev:69.08,mtg:5.47},{d:'Mar 18',dev:25.48,mtg:7.99},
+  {d:'Mar 19',dev:17.18,mtg:0},   {d:'Mar 20',dev:0.13,mtg:0},
+  {d:'Mar 21',dev:2.26,mtg:0},    {d:'Mar 22',dev:4.43,mtg:2.53},
+  {d:'Mar 23',dev:12.44,mtg:4.52},{d:'Mar 24',dev:26.58,mtg:11.92},
+  {d:'Mar 25',dev:28.42,mtg:15.19},{d:'Mar 26',dev:30.62,mtg:5.87},
+  {d:'Mar 27',dev:8.46,mtg:0.97}, {d:'Mar 30',dev:0.13,mtg:0},
+  {d:'Mar 31',dev:0.13,mtg:0}
+];
+
+// Full user dataset – updated from Clockify CSV export 31/03/2026
+// Full user dataset – updated from Clockify CSV export 31/03/2026
+// 20 members · 800 entries
+const USERS = {
+  'Deema':{dev:114.14,mtg:17.7,total:131.84,full:true,c:{'FotoCapture V6.6':66.03,'KFH':31.79,'FotoCapture':30.98,'FotoCapture V6.7':3.04},p:{'Foto Capture':100.05,'KFH':31.79},w:{'Unknown':62.05,'Feature':23.09,'Bug Fix':21.23,'Meeting':17.7,'Support':7.77}},
+  'Engy Ahmed':{dev:75.84,mtg:55.59,total:131.43,full:true,c:{'Foto Gnize V2':91.92,'Digitizeme':39.51},p:{'Fotognize':91.92,'Fotofind':39.51},w:{'Meeting':55.59,'Feature':32.5,'Unknown':32.34,'Support':8.5,'Bug Fix':2.5}},
+  'Omar Mohamed':{dev:121.98,mtg:8.72,total:130.7,full:true,c:{'Foto Gnize V2':104.54,'Foto GnizeV1':26.16},p:{'Fotognize':130.7},w:{'Unknown':71.51,'Support':26.16,'Feature':22.45,'Meeting':8.72,'Bug Fix':1.86}},
+  'Yousef Eid':{dev:126.0,mtg:0.0,total:126.0,full:false,c:{'Foto Gnize V2':84.0,'Foto GnizeV1':42.0},p:{'Fotognize':126.0},w:{'Feature':84.0,'Unknown':42.0}},
+  'Sameh Amnoun':{dev:75.57,mtg:36.65,total:112.22,full:true,c:{'FotoCapture':68.15,'Fotofind':33.74,'Fotopia':4.58,'Foto Gnize V2':2.5},p:{'Foto Capture':68.15,'Fotofind':33.74,'Fotopia':4.58,'Fotognize':3.5},w:{'Unknown':55.99,'Meeting':36.65,'Bug Fix':9.75,'Feature':6.0,'Support':3.83}},
+  'Omar Alaa':{dev:103.55,mtg:7.1,total:110.65,full:true,c:{'Fototracker':66.58,'FotoCapture':38.12,'Fotofind':5.95},p:{'Fototracker':66.58,'Foto Capture':38.12,'Fotofind':5.95},w:{'Feature':44.98,'Unknown':32.53,'Support':24.63,'Meeting':7.1,'Bug Fix':1.41}},
+  'Daniel Lewis':{dev:86.17,mtg:24.33,total:110.5,full:true,c:{'FotoCapture':39.67,'FotoCapture V6.7':39.58,'FotoCapture V6.6':17.42,'FotoCapture V6.5':11.5},p:{'Foto Capture':108.67,'Miscellaneous':1.83},w:{'Bug Fix':56.33,'Meeting':24.33,'Feature':20.67,'Support':9.17}},
+  'Aesha H.':{dev:98.41,mtg:0.0,total:98.41,full:true,c:{'Fotocapture Testing':52.58,'Miscellaneous':27.92,'Fotofind':17.91},p:{'Foto Capture':52.58,'Miscellaneous':27.92,'Fotofind':17.91},w:{'Unknown':98.41}},
+  'Nour Helal':{dev:80.25,mtg:13.5,total:93.75,full:true,c:{'Foto Gnize V2':93.75},p:{'Fotognize':93.75},w:{'Feature':39.0,'Bug Fix':21.75,'Unknown':19.5,'Meeting':13.5}},
+  'Mohammed Y.':{dev:68.04,mtg:6.99,total:75.03,full:true,c:{'Fotopia':75.03},p:{'Fotopia':75.03},w:{'Bug Fix':38.6,'Feature':13.85,'Unknown':11.16,'Meeting':6.99,'Support':4.43}},
+  'Nancy A.':{dev:73.75,mtg:0.0,total:73.75,full:true,c:{'Fotopia':73.75},p:{'Fotopia':73.75},w:{'Unknown':73.75}},
+  'Ali Murtaza':{dev:51.17,mtg:4.0,total:55.17,full:true,c:{'Fotofind':23.0,'Internal':19.17,'DET':13.0},p:{'Fotofind':23.0,'Demo Support':19.17,'DET':13.0},w:{'Support':23.5,'Bug Fix':15.5,'Feature':9.0,'Meeting':4.0,'Unknown':3.17}},
+  'Jumana Yasser':{dev:50.63,mtg:0.0,total:50.63,full:false,c:{'R&D':50.63},p:{'R&D':50.63},w:{'Support':28.67,'Unknown':21.96}},
+  'AbdulRahman S.':{dev:33.84,mtg:7.8,total:41.64,full:false,c:{'Fotopia':41.64},p:{'Fotopia':41.64},w:{'Unknown':30.38,'Meeting':7.8,'Feature':3.46}},
+  'Ibrahim A.':{dev:36.51,mtg:1.55,total:38.06,full:false,c:{'Fotofind':36.73,'FotoCapture V6.6':1.01,'FotoCapture':0.32},p:{'Fotofind':36.73,'Foto Capture':1.33},w:{'Unknown':23.5,'Feature':12.0,'Meeting':1.55,'Bug Fix':1.01}},
+  'Nagwa':{dev:24.3,mtg:0.0,total:24.3,full:false,c:{'Foto Gnize V2':17.33,'Internal':6.82,'FotoGnize':0.15},p:{'Fotognize':17.48,'Marketing':6.82},w:{'Unknown':24.3}},
+  'Ahmed Abouzaid':{dev:12.59,mtg:10.13,total:22.72,full:false,c:{'Foto Gnize V2':22.72},p:{'Fotognize':22.72},w:{'Meeting':10.13,'Unknown':8.59,'Support':4.0}},
+  'Jihad M.':{dev:19.5,mtg:2.75,total:22.25,full:false,c:{'Fotofind':22.25},p:{'Fotofind':22.25},w:{'Bug Fix':10.5,'Feature':6.0,'Support':3.0,'Meeting':2.75}},
+  'Ahmed Alaa':{dev:5.0,mtg:0.0,total:5.0,full:false,c:{'Fotoverifai':5.0},p:{'Fotoverifai':5.0},w:{'Unknown':5.0}},
+  'Thejaswini N.':{dev:2.86,mtg:0.0,total:2.86,full:false,c:{'KFH':2.86},p:{'KFH':2.86},w:{'Unknown':1.43,'Feature':1.04,'Support':0.26,'Bug Fix':0.13}},
+};
+
+const FULL_TIMERS = Object.keys(USERS).filter(u=>USERS[u].full);
+const CAP = {
+  'Engy Ahmed':119.5,'Sameh Amnoun':119.5,'Nancy A.':119.5,'Nour Helal':119.5,
+  'Daniel Lewis':119.5,'Omar Alaa':119.5,'Ali Murtaza':119.5,'Deema':119.5,
+  'Mohammed Y.':119.5,'Omar Mohamed':119.5,'Aesha H.':119.5
+};
+
+// ══════════════════ DEVOPS DATASET ══════════════════
+// Illustrative data — replace with live Azure DevOps API feed
+// Complexity inferred from: work item type · linked PRs · duration · reopen count
+// ── Live data from Azure DevOps org: Fotopiatech ────
+// Fetched: 172 work items closed Mar 2026 · 85 PRs completed Mar 2026
+// ── ATTRIBUTION: Ticket delivery attributed via QA-flow assignment history ──────
+// Attribution rule:
+//   1. 'pre-qa-handoff'       — Ticket was assigned to Aesha/Ijaz/Sameh; credit goes to the person assigned directly BEFORE that transition.
+//   2. 'most-recent-no-qa-flow' — No QA handoff detected in history; credit goes to most recent non-QA assignee (inferred).
+// Sameh = code reviewer only (excluded). Aesha & Ijaz = QA gate (excluded).
+// Core team: Daniel Lewis · Deema Ayman · Omar Alaa · Ibrahim Amer
+// Keys use Clockify display names so drill-down panel links correctly.
+// Complexity is inferred: Bug+CT>10→High, Bug+CT>5→Med, Bug+CT≤5→Low; Feature→Med; Task→Low (Med if CT>10)
+// Reopen rate: requires per-ticket revision history (expensive) — shown as 0 with note in quality signals
+// ATTRIBUTION – refreshed 31/03/2026 from Azure DevOps (172 closed tickets, 85 PRs)
+// QA gate: Aesha Hassen, Ijaz Ahmed, Farah Eid — last non-QA assignee credited
+const ATTRIBUTION = {
+  'Omar Alaa': {dn:'Omar Alaa', total:62, qaFlow:4, inferred:58, byType:{'Task':57,'Bug':3,'User Story':2}, cx:{Low:62,Medium:0,High:0}, bySV:{'Iteration 1':55,'Foto Capture':5,'Sprint11':2}, cycleTime:2.7, prs:{authored:14,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},  // 15 standup/meeting tickets excluded
+  'Daniel Lewis': {dn:'Daniel Lewis', total:26, qaFlow:22, inferred:4, byType:{'Bug':22,'Task':4}, cx:{Low:0,Medium:4,High:22}, bySV:{'Foto Capture':26}, cycleTime:13.5, prs:{authored:8,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Sameh Amnoun': {dn:'Sameh Amnoun', total:24, qaFlow:23, inferred:1, byType:{'Feature':10,'Bug':13,'Task':1}, cx:{Low:0,Medium:11,High:13}, bySV:{'Foto Capture':24}, cycleTime:16.8, prs:{authored:0,reviewed:49,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Muzamil S.': {dn:'Muzamil Siddiqui', total:15, qaFlow:6, inferred:9, byType:{'Feature':1,'Task':9,'Bug':5}, cx:{Low:9,Medium:6,High:0}, bySV:{'Foto Find':15}, cycleTime:8.4, prs:{authored:16,reviewed:16,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Thejaswini N.': {dn:'Thejaswini N.', total:7, qaFlow:0, inferred:7, byType:{'Issue':1,'User Story':3,'Task':2,'Bug':1}, cx:{Low:0,Medium:6,High:1}, bySV:{'KFH':7}, cycleTime:16.6, prs:{authored:5,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Deema': {dn:'Deema Ayman', total:5, qaFlow:5, inferred:0, byType:{'Feature':1,'Bug':4}, cx:{Low:0,Medium:5,High:0}, bySV:{'Foto Capture':5}, cycleTime:6.4, prs:{authored:9,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Omar Mohamed': {dn:'Omar Mohamed', total:2, qaFlow:0, inferred:2, byType:{'Task':2}, cx:{Low:2,Medium:0,High:0}, bySV:{'Version 1.6':2}, cycleTime:1.0, prs:{authored:4,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Jihad M.': {dn:'Jihad M.', total:1, qaFlow:0, inferred:1, byType:{'Task':1}, cx:{Low:0,Medium:1,High:0}, bySV:{'Foto Find':1}, cycleTime:14.0, prs:{authored:3,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Ibrahim A.': {dn:'Ibrahim Amer', total:1, qaFlow:1, inferred:0, byType:{'Bug':1}, cx:{Low:1,Medium:0,High:0}, bySV:{'Foto Find':1}, cycleTime:3.0, prs:{authored:16,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Engy Ahmed': {dn:'Engy Ahmed', total:1, qaFlow:0, inferred:1, byType:{'Task':1}, cx:{Low:1,Medium:0,High:0}, bySV:{'Version 1.6':1}, cycleTime:0.0, prs:{authored:1,reviewed:1,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live'},
+  'Nour Helal': {dn:'Nour Helal', total:0, qaFlow:0, inferred:0, byType:{}, cx:{Low:0,Medium:0,High:0}, bySV:{}, cycleTime:null, prs:{authored:3,reviewed:4,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live-only'},
+  'Yousef Eid': {dn:'Yousef Eid', total:0, qaFlow:0, inferred:0, byType:{}, cx:{Low:0,Medium:0,High:0}, bySV:{}, cycleTime:null, prs:{authored:4,reviewed:3,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live-only'},
+  'Aesha H.': {dn:'Aesha Hassen', total:0, qaFlow:0, inferred:0, byType:{}, cx:{Low:0,Medium:0,High:0}, bySV:{}, cycleTime:null, prs:{authored:0,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'no-data'},
+  'Farah Eid': {dn:'Farah Eid', total:0, qaFlow:0, inferred:0, byType:{}, cx:{Low:0,Medium:0,High:0}, bySV:{}, cycleTime:null, prs:{authored:0,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'no-data'},
+  'Prajwal S.': {dn:'Prajwal Shetty', total:0, qaFlow:0, inferred:0, byType:{}, cx:{Low:0,Medium:0,High:0}, bySV:{}, cycleTime:null, prs:{authored:2,reviewed:0,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live-only'},
+  'Mohamed M.': {dn:'Mohamed Moiniddin', total:0, qaFlow:0, inferred:0, byType:{}, cx:{Low:0,Medium:0,High:0}, bySV:{}, cycleTime:null, prs:{authored:0,reviewed:3,approved:0,merged:0,reopened:0,noLinkedPR:0}, dataSource:'live-only'},
+};
+
+// ── Attribution + DevOps helper functions ────────────
+function attrQaConf(d){ return d.total>0?Math.round(d.qaFlow/d.total*100):0; }
+function attrConfPill(pct){ return pct>=70?'phi':pct>=30?'pmd':'pgr'; }
+function attrSrcBadge(d){ return d.dataSource==='live-only'?`<span class="pill" style="background:#dcfce7;color:#166534;font-size:.55rem;margin-left:4px">ADO only</span>`:''; }
+function dvWeighted(cx){ return (cx.High||0)*3+(cx.Medium||0)*2+(cx.Low||0); }
+function dvAvgComplexity(cx){
+  const t=(cx.High||0)+(cx.Medium||0)+(cx.Low||0);
+  if(!t) return null;
+  const s=dvWeighted(cx)/t;
+  return s>=2.3?'High':s>=1.4?'Medium':'Low';
+}
+function dvRole(d){
+  const rev=(d.prs.reviewed||0)+(d.prs.approved||0);
+  const auth=d.prs.authored||0;
+  const tick=d.total||0;
+  const dlv=tick*2+auth, rvw=rev;
+  if(d.dataSource==='live-only') return 'ADO Only';
+  if(rvw>dlv*1.5&&rev>=8) return 'Review-heavy';
+  if(dlv>rvw*1.2&&(tick>=8||auth>=8)) return 'Delivery-heavy';
+  return 'Balanced';
+}
+function dvRolePill(r){ return r==='Delivery-heavy'?'phi':r==='Review-heavy'?'pbl':r==='ADO Only'?'pgr':'pgr'; }
+function dvRoleCls(r){ return r==='Delivery-heavy'?'role-dl':r==='Review-heavy'?'role-rv':r==='ADO Only'?'':'role-bl'; }
+function dvReopenRate(d){ return d.prs.reopened>0&&d.total>0?Math.round(d.prs.reopened/d.total*100):null; }
+
+// ══════════════════ CHART HELPERS ══════════════════
+Chart.defaults.font.family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
+Chart.defaults.font.size=11; Chart.defaults.color='#718096';
+const DEV='rgba(79,70,229,.82)', MTG='rgba(245,158,11,.82)';
+const R=n=>Math.round(n*100)/100;
+
+function donut(id,labels,data,colors,opts={}){
+  const ctx=document.getElementById(id);
+  if(!ctx) return null;
+  return new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:0,hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:opts.legend||'bottom',labels:{boxWidth:9,padding:11,font:{size:10}}},
+        tooltip:{callbacks:{label:i=>{const t=i.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);return ` ${i.label}: ${i.raw.toFixed(1)}h (${(i.raw/t*100).toFixed(1)}%)`}}}}}});
+}
+
+function stackedBar(id,labels,devData,mtgData,opts={}){
+  return new Chart(document.getElementById(id),{type:'bar',
+    data:{labels,datasets:[
+      {label:'Development',data:devData,backgroundColor:DEV,borderRadius:3,borderSkipped:false},
+      {label:'Meetings',data:mtgData,backgroundColor:MTG,borderRadius:3,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:i=>i[0].label,
+        label:i=>` ${i.dataset.label}: ${i.raw.toFixed(1)}h`,
+        footer:i=>`Total: ${i.reduce((s,x)=>s+x.raw,0).toFixed(1)}h`
+      }}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:opts.rot||35,minRotation:opts.rot||20}},
+              y:{stacked:true,grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}}},
+      onClick:opts.onClick||null}});
+}
+
+// ══════════════════ TAB SWITCHING ══════════════════
+const built={};
+function ST(id,el){
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tc-'+id).classList.add('on');
+  el.classList.add('on');
+  if(!built[id]){built[id]=true;
+    if(id==='pr') buildProducts();
+    if(id==='cl') buildClients();
+    if(id==='wt') buildWorkTypes();
+    if(id==='ut') buildUtil();
+    if(id==='dv') buildDevOps();
+  }
+}
+
+// ══════════════════ OVERVIEW ══════════════════
+let teamSort='total', teamChart;
+function getTeamData(s){
+  const e=Object.entries(USERS).sort((a,b)=>b[1][s]-a[1][s]);
+  return {labels:e.map(x=>x[0]),dev:e.map(x=>x[1].dev),mtg:e.map(x=>x[1].mtg)};
+}
+function buildTeamChart(s){
+  const d=getTeamData(s);
+  if(teamChart) teamChart.destroy();
+  // Expected hours line per member (119.5h for full-timers, null for part-timers)
+  const expectedData=d.labels.map(n=>CAP[n]||null);
+  teamChart=new Chart(document.getElementById('teamChart'),{type:'bar',
+    data:{labels:d.labels,datasets:[
+      {label:'Development',data:d.dev,backgroundColor:DEV,borderRadius:3,borderSkipped:false,stack:'s'},
+      {label:'Meetings',data:d.mtg,backgroundColor:MTG,borderRadius:3,borderSkipped:false,stack:'s'},
+      {label:'Expected',data:expectedData,type:'line',borderColor:'rgba(239,68,68,.6)',borderWidth:1.5,borderDash:[5,4],pointRadius:d.labels.map(n=>CAP[n]?3:0),pointBackgroundColor:'rgba(239,68,68,.6)',fill:false,spanGaps:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        title:i=>i[0].label,
+        label:i=>{
+          if(i.datasetIndex===2) return CAP[i.label]?` Expected: ${CAP[i.label]}h`:null;
+          return ` ${i.dataset.label}: ${i.raw.toFixed(1)}h`;
+        },
+        footer:i=>{
+          const n=i[0].label,total=USERS[n]?.total||0;
+          const lines=[`Total: ${total.toFixed(1)}h`];
+          if(CAP[n]){const delta=total-CAP[n];lines.push(`${delta>=0?'▲ Above':'▼ Below'} by ${Math.abs(delta).toFixed(1)}h`);}
+          return lines;
+        }
+      }}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:35,minRotation:20}},
+              y:{stacked:true,grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}}},
+      onClick:(e,els)=>{if(!els.length)return;openPanel(d.labels[els[0].index]);}}});
+}
+function sortTeam(s){
+  teamSort=s;
+  ['total','dev','mtg'].forEach(k=>document.getElementById('ts-'+k).classList.toggle('on',k===s));
+  buildTeamChart(s);
+}
+
+donut('donutOv',['Development','Meetings'],[1260,197],['#4f46e5','#f59e0b'],{legend:'bottom'});
+
+const holidayPlugin={id:'hol',beforeDraw(chart){
+  const {ctx:c,chartArea:{left,right,top,bottom},scales:{x}}=chart;
+  const x1=x.getPixelForValue(18),x2=x.getPixelForValue(22);
+  c.save();c.fillStyle='rgba(0,0,0,.05)';c.fillRect(x1,top,x2-x1,bottom-top);c.restore();
+}};
+new Chart(document.getElementById('dailyChart'),{
+  type:'bar', plugins:[holidayPlugin],
+  data:{labels:dailyData.map(d=>d.d),datasets:[
+    {label:'Development',data:dailyData.map(d=>d.dev),backgroundColor:DEV,borderRadius:2,borderSkipped:false,stack:'s'},
+    {label:'Meetings',data:dailyData.map(d=>d.mtg),backgroundColor:MTG,borderRadius:2,borderSkipped:false,stack:'s'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{
+      title:i=>i[0].label,label:i=>` ${i.dataset.label}: ${i.raw.toFixed(1)}h`,
+      footer:i=>`Total: ${i.reduce((s,x)=>s+x.raw,0).toFixed(1)}h`}}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:45}},
+            y:{stacked:true,grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}}}}
+});
+
+buildTeamChart('total');
+
+// Helper: get ticket count for a user from ATTRIBUTION
+function getTickets(n){
+  // Match user name to ATTRIBUTION keys
+  const a=ATTRIBUTION[n];
+  if(a) return a.total;
+  // Try partial match (display name)
+  const match=Object.entries(ATTRIBUTION).find(([k,v])=>v.dn===n||k===n);
+  return match?match[1].total:0;
+}
+function getPRRev(n){
+  const a=ATTRIBUTION[n];
+  if(a) return a.prs.reviewed;
+  const match=Object.entries(ATTRIBUTION).find(([k,v])=>v.dn===n||k===n);
+  return match?match[1].prs.reviewed:0;
+}
+
+// Member table
+let mSort='dev',mDir='desc';
+function renderMTable(){
+  const maxT=Math.max(...Object.values(USERS).map(v=>v.total));
+  let rows=Object.entries(USERS).sort((a,b)=>{
+    let av,bv;
+    if(mSort==='name'){av=a[0];bv=b[0];}
+    else if(mSort==='eff'){av=a[1].dev/a[1].total;bv=b[1].dev/b[1].total;}
+    else if(mSort==='expected'){av=CAP[a[0]]||0;bv=CAP[b[0]]||0;}
+    else if(mSort==='delta'){av=a[1].total-(CAP[a[0]]||0);bv=b[1].total-(CAP[b[0]]||0);}
+    else if(mSort==='tickets'){av=getTickets(a[0]);bv=getTickets(b[0]);}
+    else if(mSort==='prRev'){av=getPRRev(a[0]);bv=getPRRev(b[0]);}
+    else{av=a[1][mSort];bv=b[1][mSort];}
+    return typeof av==='string'?(mDir==='asc'?av.localeCompare(bv):bv.localeCompare(av)):(mDir==='asc'?av-bv:bv-av);
+  });
+  document.getElementById('mtbody').innerHTML=rows.map(([n,v])=>{
+    const eff=v.total>0?v.dev/v.total*100:0;
+    const pc=eff>=80?'phi':eff>=60?'pmd':'plo';
+    const tp=v.full?'<span class="pill pbl">Full</span>':'<span class="pill pgr">Part</span>';
+    const prods=Object.entries(v.p).sort((a,b)=>b[1]-a[1]).slice(0,2)
+      .map(([p,h])=>`<span title="${h.toFixed(1)}h" style="display:inline-block;background:#eef2ff;color:#4f46e5;font-size:.62rem;padding:1px 6px;border-radius:10px;margin:1px">${p}</span>`).join('');
+    const cap=CAP[n];
+    const expStr=cap?cap+'h':'<span style="color:var(--muted);font-size:.68rem">—</span>';
+    const delta=cap?v.total-cap:null;
+    const deltaStr=delta!==null?`<span style="color:${delta>=0?'#10b981':'#ef4444'};font-weight:600">${delta>=0?'▲':'▼'}${Math.abs(delta).toFixed(1)}h</span>`:'<span style="color:var(--muted);font-size:.68rem">—</span>';
+    const tix=getTickets(n);
+    const tixStr=tix>0?`<span style="font-weight:600">${tix}</span>`:'<span style="color:var(--muted)">—</span>';
+    const prRev=getPRRev(n);
+    const prRevStr=prRev>0?`<span style="font-weight:600;color:#4f46e5">${prRev}</span>`:'<span style="color:var(--muted)">—</span>';
+    return `<tr onclick="openPanel('${n}')">
+      <td style="font-weight:600">${n}</td>
+      <td><div class="bc"><span style="min-width:32px;color:var(--dev);font-weight:600">${v.dev.toFixed(1)}h</span><div class="mb"><div class="mf" style="width:${v.dev/maxT*100}%;background:var(--dev)"></div></div></div></td>
+      <td><div class="bc"><span style="min-width:32px;color:var(--mtg);font-weight:600">${v.mtg.toFixed(1)}h</span><div class="mb"><div class="mf" style="width:${v.mtg/maxT*100}%;background:var(--mtg)"></div></div></div></td>
+      <td style="font-weight:600">${v.total.toFixed(1)}h</td>
+      <td>${expStr}</td>
+      <td>${deltaStr}</td>
+      <td><span class="pill ${pc}">${eff.toFixed(0)}%</span></td>
+      <td>${tixStr}</td>
+      <td>${prRevStr}</td>
+      <td>${tp}</td><td>${prods}</td>
+    </tr>`;
+  }).join('');
+}
+function sortM(k){
+  if(mSort===k) mDir=mDir==='desc'?'asc':'desc'; else{mSort=k;mDir=k==='name'?'asc':'desc';}
+  renderMTable();
+}
+renderMTable();
+
+// ── PR Reviewers table ────────────────────────────────────
+(function renderPRReviewers(){
+  // Collect everyone with reviews or authored PRs from ATTRIBUTION
+  const reviewers = Object.entries(ATTRIBUTION)
+    .filter(([,d]) => (d.prs.reviewed||0) > 0 || (d.prs.authored||0) > 0)
+    .sort((a,b) => (b[1].prs.reviewed||0) - (a[1].prs.reviewed||0));
+  document.getElementById('prRevBody').innerHTML = reviewers.map(([key, d]) => {
+    const rev = d.prs.reviewed || 0;
+    const auth = d.prs.authored || 0;
+    const role = rev >= 20 ? '🏆 Lead Reviewer' : rev >= 5 ? '👀 Active Reviewer' : auth >= 10 ? '🚀 Author' : '—';
+    const revCol = rev >= 20 ? '#10b981' : rev >= 5 ? '#4f46e5' : '#94a3b8';
+    return `<tr>
+      <td style="font-weight:600">${d.dn}</td>
+      <td><div style="display:flex;align-items:center;gap:6px">
+        <div class="mb" style="max-width:70px;min-width:40px"><div class="mf" style="width:${Math.min(rev/50*100,100)}%;background:${revCol}"></div></div>
+        <span style="font-weight:700;color:${revCol}">${rev}</span>
+      </div></td>
+      <td style="color:var(--dev);font-weight:600">${auth || '—'}</td>
+      <td style="font-size:.72rem;color:var(--muted)">${role}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" style="color:var(--muted);text-align:center">No PR data</td></tr>';
+})();
+
+// ── Above / Below Expected hours chart ───────────────────
+(function renderAboveBelow(){
+  const fts = FULL_TIMERS.sort((a,b) => {
+    const da = USERS[a].total - (CAP[a]||119.5);
+    const db = USERS[b].total - (CAP[b]||119.5);
+    return db - da;
+  });
+  const deltas = fts.map(n => R(USERS[n].total - (CAP[n]||119.5)));
+  const colors = deltas.map(d => d >= 0 ? 'rgba(16,185,129,.8)' : 'rgba(239,68,68,.75)');
+  new Chart(document.getElementById('aboveBelowChart'), {
+    type: 'bar',
+    data: {
+      labels: fts,
+      datasets: [{
+        label: 'Δ vs Expected',
+        data: deltas,
+        backgroundColor: colors,
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          title: i => i[0].label,
+          label: i => ` ${i.raw >= 0 ? '▲ Above' : '▼ Below'} by ${Math.abs(i.raw).toFixed(1)}h`,
+          footer: i => [` Logged: ${USERS[i[0].label].total.toFixed(1)}h`, ` Expected: ${CAP[i[0].label]}h`]
+        }}
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 30, minRotation: 20 } },
+        y: { grid: { color: '#f0f2f5' }, ticks: { callback: v => (v >= 0 ? '+' : '') + v + 'h' },
+             afterDataLimits: axis => { axis.min = Math.min(axis.min, -30); axis.max = Math.max(axis.max, 30); } }
+      }
+    }
+  });
+})();
+
+// ══════════════════ PRODUCTS ══════════════════
+function buildProducts(){
+  // Group aggregation
+  const grpMap={};
+  Object.values(productStats).forEach(v=>{
+    if(!grpMap[v.group]) grpMap[v.group]={dev:0,mtg:0,total:0};
+    grpMap[v.group].dev+=v.dev; grpMap[v.group].mtg+=v.mtg; grpMap[v.group].total+=v.total;
+  });
+  const grpOrder=['Fotognize','Capture','Fotofind','Fototracker','Internal','CTC Application','DET Project','Fotoverifai','Demos'];
+  const grps=grpOrder.filter(g=>grpMap[g]&&grpMap[g].total>0.5);
+  stackedBar('prodGrpChart',grps,grps.map(g=>R(grpMap[g].dev)),grps.map(g=>R(grpMap[g].mtg)),{rot:30});
+  donut('prodDonut',grps,grps.map(g=>R(grpMap[g].total)),grps.map(g=>GRP_COLORS[g]||'#cbd5e1'));
+
+  // Table
+  let pSort='dev',pDir='desc';
+  function renderP(){
+    const rows=Object.entries(productStats).filter(([,v])=>v.total>0).sort((a,b)=>{
+      let av=pSort==='name'?a[0]:pSort==='group'?a[1].group:pSort==='eff'?a[1].dev/a[1].total:a[1][pSort==='mtg'?'mtg':pSort];
+      let bv=pSort==='name'?b[0]:pSort==='group'?b[1].group:pSort==='eff'?b[1].dev/b[1].total:b[1][pSort==='mtg'?'mtg':pSort];
+      return typeof av==='string'?(pDir==='asc'?av.localeCompare(bv):bv.localeCompare(av)):(pDir==='asc'?av-bv:bv-av);
+    });
+    const maxT=Math.max(...rows.map(([,v])=>v.total));
+    document.getElementById('ptbody').innerHTML=rows.map(([n,v])=>{
+      const eff=v.total>0?v.dev/v.total*100:0;
+      const pc=eff>=80?'phi':eff>=60?'pmd':'plo';
+      const c=GRP_COLORS[v.group]||'#94a3b8';
+      return `<tr>
+        <td style="font-weight:600">${n}</td>
+        <td><span style="display:inline-block;padding:1px 7px;border-radius:20px;font-size:.62rem;font-weight:700;background:${c}22;color:${c}">${v.group}</span></td>
+        <td><div class="bc"><span style="min-width:32px;color:var(--dev);font-weight:600">${v.dev.toFixed(1)}h</span><div class="mb"><div class="mf" style="width:${v.dev/maxT*100}%;background:var(--dev)"></div></div></div></td>
+        <td>${v.mtg.toFixed(1)}h</td>
+        <td style="font-weight:600">${v.total.toFixed(1)}h</td>
+        <td><span class="pill ${pc}">${eff.toFixed(0)}%</span></td>
+      </tr>`;
+    }).join('');
+  }
+  window.sortP=function(k){if(pSort===k) pDir=pDir==='desc'?'asc':'desc'; else{pSort=k;pDir=k==='name'||k==='group'?'asc':'desc';} renderP();};
+  renderP();
+}
+
+// ══════════════════ CLIENTS ══════════════════
+function buildClients(){
+  const order=['Fotopia','DET','ENEO','KFH','UAQ','Demos','Digitizeme','RTA'];
+  // Cards
+  document.getElementById('ccards').innerHTML=order.map(c=>{
+    const v=clientStats[c]; if(!v) return '';
+    const col=CLIENT_COLORS[c]||'#94a3b8';
+    const eff=v.total>0?v.dev/v.total*100:0;
+    const dw=v.dev/v.total*100, mw=v.mtg/v.total*100;
+    return `<div class="cc">
+      <div class="cch"><div class="ccd" style="background:${col}"></div>${c}</div>
+      <div class="ccv" style="color:${col}">${v.total.toFixed(1)}h</div>
+      <div class="ccs">${v.dev.toFixed(1)}h dev · ${v.mtg.toFixed(1)}h mtg · ${eff.toFixed(0)}% dev</div>
+      <div class="ccbar"><div style="width:${dw}%;background:${col};height:100%;border-radius:3px"></div><div style="width:${mw}%;background:${col}44;height:100%;border-radius:3px"></div></div>
+    </div>`;
+  }).join('');
+
+  const labels=order.filter(c=>clientStats[c]);
+  new Chart(document.getElementById('clientChart'),{type:'bar',
+    data:{labels,datasets:[
+      {label:'Development',data:labels.map(c=>clientStats[c].dev),backgroundColor:labels.map(c=>CLIENT_COLORS[c]||'#94a3b8'),borderRadius:4,borderSkipped:false},
+      {label:'Meetings',data:labels.map(c=>clientStats[c].mtg),backgroundColor:labels.map(c=>(CLIENT_COLORS[c]||'#94a3b8')+'66'),borderRadius:4,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:i=>` ${i.dataset.label}: ${i.raw.toFixed(1)}h`,
+        footer:i=>`Total: ${i.reduce((s,x)=>s+x.raw,0).toFixed(1)}h`}}},
+      scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}}}}
+  });
+  donut('clientDonut',labels,labels.map(c=>clientStats[c].total),labels.map(c=>CLIENT_COLORS[c]||'#94a3b8'));
+}
+
+// ══════════════════ WORK TYPES ══════════════════
+let wtMemberChartInst;
+function buildWorkTypes(){
+  const wtOrder=['Feature','Bug Fix','Support','Unknown','Meeting'];
+  const wtCols=wtOrder.map(w=>WT_COLORS[w]);
+  donut('wtChart',wtOrder,wtOrder.map(w=>workTypeStats[w]?.hrs||0),wtCols,{legend:'right'});
+
+  // Work type by member (non-meeting only)
+  const members=Object.keys(USERS).sort((a,b)=>USERS[b].total-USERS[a].total);
+  const wtDevOrder=['Bug Fix','Feature','Support','Unknown'];
+  const wtDevCols=['rgba(239,68,68,.8)','rgba(16,185,129,.8)','rgba(59,130,246,.8)','rgba(148,163,184,.6)'];
+  if(wtMemberChartInst) wtMemberChartInst.destroy();
+  wtMemberChartInst=new Chart(document.getElementById('wtMemberChart'),{type:'bar',
+    data:{labels:members,datasets:wtDevOrder.map((wt,i)=>({
+      label:wt,
+      data:members.map(u=>(USERS[u].w[wt]||0)),
+      backgroundColor:wtDevCols[i],borderRadius:2,borderSkipped:false
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:9,padding:10,font:{size:10}}},
+        tooltip:{callbacks:{label:i=>` ${i.dataset.label}: ${i.raw.toFixed(1)}h`}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:40}},
+              y:{stacked:true,grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}}}}
+  });
+}
+
+// ══════════════════ UTILIZATION ══════════════════
+function buildUtil(){
+  const fts=FULL_TIMERS.sort((a,b)=>USERS[b].total/CAP[b]-USERS[a].total/CAP[a]);
+  const pcts=fts.map(n=>Math.round(USERS[n].total/CAP[n]*1000)/10);
+  const avgLog=R(fts.reduce((s,n)=>s+USERS[n].total,0)/fts.length);
+  const avgU=R(fts.reduce((s,n)=>s+USERS[n].total/CAP[n]*100,0)/fts.length);
+  document.getElementById('avgUtil').textContent=avgU.toFixed(0)+'%';
+  document.getElementById('avgLog').textContent=avgLog.toFixed(1)+'h';
+
+  // Above / Below expected KPIs
+  const above=fts.filter(n=>USERS[n].total>=CAP[n]);
+  const below=fts.filter(n=>USERS[n].total<CAP[n]);
+  document.getElementById('aboveCount').textContent=above.length;
+  document.getElementById('belowCount').textContent=below.length;
+  document.getElementById('aboveNames').textContent=above.slice(0,3).join(', ')+(above.length>3?'…':'');
+  document.getElementById('belowNames').textContent=below.slice(0,3).join(', ')+(below.length>3?'…':'');
+
+  new Chart(document.getElementById('utilChart'),{type:'bar',
+    data:{labels:fts,datasets:[
+      {label:'Logged',data:fts.map(n=>R(USERS[n].total)),
+        backgroundColor:fts.map(n=>USERS[n].total>=CAP[n]?'rgba(16,185,129,.8)':USERS[n].total>=CAP[n]*.8?'rgba(79,70,229,.8)':'rgba(148,163,184,.7)'),
+        borderRadius:5,borderSkipped:false},
+      {label:'Expected',data:fts.map(n=>CAP[n]),type:'line',
+        borderColor:'rgba(239,68,68,.6)',borderWidth:2,borderDash:[5,4],
+        pointRadius:4,pointBackgroundColor:'rgba(239,68,68,.6)',fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,labels:{boxWidth:10,padding:12,font:{size:10}}},tooltip:{callbacks:{
+        title:i=>i[0].label,
+        label:i=>i.datasetIndex===0?` Logged: ${i.raw}h`:` Expected: ${i.raw}h`,
+        footer:i=>{
+          const n=i[0].label,logged=USERS[n].total,cap=CAP[n];
+          const delta=logged-cap;
+          return [`Dev: ${USERS[n].dev.toFixed(1)}h`,`${delta>=0?'▲ Above':'▼ Below'} by ${Math.abs(delta).toFixed(1)}h`];
+        }
+      }}},
+      scales:{y:{min:0,max:140,grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}},x:{grid:{display:false}}}}
+  });
+
+  document.getElementById('utilBody').innerHTML=fts.map(n=>{
+    const v=USERS[n],cap=CAP[n],pct=+(v.total/cap*100).toFixed(0);
+    const delta=v.total-cap;
+    const pc=pct>=100?'phi':pct>=80?'pmd':'plo';
+    const deltaStr=`<span style="color:${delta>=0?'#10b981':'#ef4444'};font-weight:700">${delta>=0?'▲+':'▼'}${delta.toFixed(1)}h</span>`;
+    const note=n==='Daniel Lewis'?'–2 vacation days (Mar 17–18)':'—';
+    return `<tr><td style="font-weight:600">${n}</td>
+      <td style="color:#64748b">${cap}h</td>
+      <td style="font-weight:600">${v.total.toFixed(1)}h</td>
+      <td>${deltaStr}</td>
+      <td style="color:var(--dev)">${v.dev.toFixed(1)}h</td>
+      <td style="color:var(--mtg)">${v.mtg.toFixed(1)}h</td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div class="ub"><div class="ubf" style="width:${Math.min(pct,100)}%;background:${pct>=100?'#10b981':pct>=80?'#4f46e5':'#94a3b8'}"></div></div>
+        <span class="pill ${pc}" style="min-width:38px;text-align:center">${pct}%</span>
+      </div></td>
+      <td style="font-size:.7rem;color:var(--muted)">${note}</td></tr>`;
+  }).join('');
+
+  const parts=Object.entries(USERS).filter(([n])=>!FULL_TIMERS.includes(n)).sort((a,b)=>b[1].total-a[1].total);
+  const maxP=Math.max(...parts.map(([,v])=>v.total));
+  document.getElementById('partBody').innerHTML=parts.map(([n,v])=>{
+    const eff=v.total>0?v.dev/v.total*100:0;
+    const pc=eff>=80?'phi':eff>=60?'pmd':'plo';
+    const prods=Object.entries(v.p).sort((a,b)=>b[1]-a[1]).slice(0,3)
+      .map(([p,h])=>`<span title="${h.toFixed(1)}h" style="display:inline-block;background:#eef2ff;color:#4f46e5;font-size:.62rem;padding:1px 6px;border-radius:10px;margin:1px">${p}</span>`).join('');
+    return `<tr><td style="font-weight:600">${n}</td>
+      <td style="font-weight:600">${v.total.toFixed(1)}h</td>
+      <td><div class="bc"><span style="min-width:32px;color:var(--dev);font-weight:600">${v.dev.toFixed(1)}h</span><div class="mb"><div class="mf" style="width:${v.dev/maxP*100}%;background:var(--dev)"></div></div></div></td>
+      <td>${v.mtg.toFixed(1)}h</td>
+      <td><span class="pill ${pc}">${eff.toFixed(0)}%</span></td>
+      <td>${prods}</td></tr>`;
+  }).join('');
+}
+
+// ══════════════════ DEVOPS BUILD ══════════════════
+let dvCharts=[];
+function buildDevOps(){
+  dvCharts.forEach(c=>c&&c.destroy()); dvCharts=[];
+
+  const members=Object.entries(ATTRIBUTION);
+
+  // ── totals ───────────────────────────────────────────
+  const totTix   = members.reduce((s,[,d])=>s+d.total, 0);
+  const qaFlowT  = members.reduce((s,[,d])=>s+d.qaFlow, 0);
+  const infT     = members.reduce((s,[,d])=>s+d.inferred, 0);
+  const ctSrc    = members.filter(([,d])=>d.cycleTime!=null).map(([,d])=>d.cycleTime);
+  const avgCT    = ctSrc.length ? (ctSrc.reduce((a,b)=>a+b,0)/ctSrc.length).toFixed(1) : '—';
+  const qaConfPct= totTix>0 ? Math.round(qaFlowT/totTix*100) : 0;
+
+  // ── KPI strip ────────────────────────────────────────
+  const totAuth =members.reduce((s,[,d])=>s+d.prs.authored,0);
+  const totRev  =members.reduce((s,[,d])=>s+d.prs.reviewed,0);
+  document.getElementById('dv-krow').innerHTML=`
+    <div class="kpi kdev"><div class="kl">Attributed Tickets</div><div class="kv">${totTix}</div><div class="ks">March 2026 · all devs</div></div>
+    <div class="kpi"><div class="kl">Via QA Flow</div><div class="kv">${qaFlowT}</div><div class="ks">Confirmed pre-QA handoff</div></div>
+    <div class="kpi"><div class="kl">Inferred</div><div class="kv">${infT}</div><div class="ks">Most-recent non-QA assignee</div></div>
+    <div class="kpi"><div class="kl">QA Confidence</div><div class="kv">${qaConfPct}%</div><div class="ks">tickets via confirmed flow</div></div>
+    <div class="kpi kdev"><div class="kl">PRs Authored</div><div class="kv">${totAuth}</div><div class="ks">delivery ownership</div></div>
+    <div class="kpi kmtg"><div class="kl">Avg Cycle Time</div><div class="kv">${avgCT}d</div><div class="ks">Activated → Closed</div></div>`;
+
+  // ── role cards (Delivery / Review / Balanced) ─────────
+  const classified=members.map(([n,d])=>({n,d,role:dvRole(d)}));
+  const dlvList=classified.filter(r=>r.role==='Delivery-heavy');
+  const rvwList=classified.filter(r=>r.role==='Review-heavy');
+  const blnList=classified.filter(r=>r.role==='Balanced');
+  const adoOnlyList=classified.filter(r=>r.role==='ADO Only');
+  const mkRow=({n,d})=>`<div class="member-row">${d.dn||n} <span style="color:var(--muted);font-size:.68rem">· ${d.total} tickets${d.qaFlow>0?` · <span style="color:#10b981">${d.qaFlow} QA-confirmed</span>`:' · <em>inferred</em>'}</span></div>`;
+  document.getElementById('dv-roles').innerHTML=`
+    <div class="card role-card-dl">
+      <div class="ct role-dl">Delivery-heavy (${dlvList.length})</div>
+      <div class="cs" style="margin-bottom:8px">High attributed ticket count · High PR authorship</div>
+      ${dlvList.map(mkRow).join('')||'<div class="member-row" style="color:var(--muted)">None this month</div>'}
+    </div>
+    <div class="card role-card-rv">
+      <div class="ct role-rv">Review-heavy (${rvwList.length})</div>
+      <div class="cs" style="margin-bottom:8px">High PR reviews &amp; approvals · review-oriented contributor</div>
+      ${rvwList.map(mkRow).join('')||'<div class="member-row" style="color:var(--muted)">None this month</div>'}
+    </div>
+    <div class="card role-card-bl">
+      <div class="ct role-bl">Balanced (${blnList.length})</div>
+      <div class="cs" style="margin-bottom:8px">Mixed delivery &amp; review contribution</div>
+      ${blnList.map(mkRow).join('')||'<div class="member-row" style="color:var(--muted)">None this month</div>'}
+    </div>
+    ${adoOnlyList.length?`<div class="card" style="border-top:3px solid #86efac">
+      <div class="ct" style="color:#166534">ADO-only (${adoOnlyList.length})</div>
+      <div class="cs" style="margin-bottom:8px">Active in Azure DevOps — no Clockify time entry found</div>
+      ${adoOnlyList.map(mkRow).join('')}
+    </div>`:''}
+  `;
+
+  // ── main attribution table ────────────────────────────
+  const sorted=[...members].sort((a,b)=>b[1].total-a[1].total);
+  const SVCOLS=['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+  document.getElementById('dv-tbody').innerHTML=sorted.map(([name,d])=>{
+    const tot =d.total||1;
+    const bPct=Math.round(d.byType.Bug/tot*100);
+    const fPct=Math.round(d.byType.Feature/tot*100);
+    const tPct=Math.round(d.byType.Task/tot*100);
+    const ct  =d.cycleTime?d.cycleTime.toFixed(1)+'d':'—';
+    const qc  =attrQaConf(d);
+    const ws  =dvWeighted(d.cx);
+    const avgC=dvAvgComplexity(d.cx);
+    const avgCCol=avgC==='High'?'#ef4444':avgC==='Medium'?'#f59e0b':'#10b981';
+    const role=dvRole(d);
+    const svTip=Object.entries(d.bySV).map(([s,c])=>`${s}: ${c}`).join(' | ');
+    return `<tr onclick="openPanel('${name}')" title="${svTip}" style="cursor:pointer">
+      <td style="font-weight:600">${d.dn||name}${attrSrcBadge(d)}</td>
+      <td><span style="font-size:.95rem;font-weight:700">${d.total}</span></td>
+      <td><span class="pill ${attrConfPill(qc)}" title="${d.qaFlow} QA-confirmed · ${d.inferred} inferred">${qc}%</span></td>
+      <td style="font-size:.7rem">
+        <span style="color:#ef4444">B:${d.byType.Bug}</span>
+        <span style="color:#10b981;margin-left:5px">F:${d.byType.Feature}</span>
+        <span style="color:#3b82f6;margin-left:5px">T:${d.byType.Task}</span>
+      </td>
+      <td style="font-weight:600">${d.prs.authored}</td>
+      <td>${d.prs.reviewed}</td>
+      <td>${d.prs.merged}</td>
+      <td style="font-weight:700;font-size:.9rem">${ws}</td>
+      <td><span style="font-weight:700;color:${avgCCol}">${avgC||'—'}</span></td>
+      <td>${ct}</td>
+      <td>
+        <div class="wm-bar" title="${svTip}">
+          ${Object.entries(d.bySV).map(([,c],i)=>`<div style="width:${Math.round(c/tot*100)}%;background:${SVCOLS[i%SVCOLS.length]}"></div>`).join('')}
+        </div>
+        <div style="font-size:.58rem;color:var(--muted);margin-top:2px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${svTip}</div>
+      </td>
+      <td>
+        <div class="wm-bar" title="Bug ${bPct}% Feature ${fPct}% Task ${tPct}%">
+          <div style="width:${bPct}%;background:#ef4444"></div>
+          <div style="width:${fPct}%;background:#10b981"></div>
+          <div style="width:${tPct}%;background:#3b82f6"></div>
+        </div>
+        <div style="font-size:.6rem;color:var(--muted);margin-top:2px">B${bPct}% F${fPct}% T${tPct}%</div>
+      </td>
+      <td><span class="pill ${dvRolePill(role)} ${dvRoleCls(role)}">${role}</span></td>
+    </tr>`;
+  }).join('');
+
+  // ── work mix chart ───────────────────────────────────
+  const chartOrder=[...members].sort((a,b)=>b[1].total-a[1].total);
+  const cLabels=chartOrder.map(([,d])=>(d.dn||'').split(' ')[0]||'?');
+  dvCharts.push(new Chart(document.getElementById('dv-mixChart'),{type:'bar',
+    data:{labels:cLabels,datasets:[
+      {label:'Bug Fix', data:chartOrder.map(([,d])=>d.byType.Bug),     backgroundColor:'rgba(239,68,68,.8)',  stack:'s',borderRadius:2,borderSkipped:false},
+      {label:'Feature', data:chartOrder.map(([,d])=>d.byType.Feature), backgroundColor:'rgba(16,185,129,.8)', stack:'s',borderRadius:2,borderSkipped:false},
+      {label:'Task',    data:chartOrder.map(([,d])=>d.byType.Task),     backgroundColor:'rgba(59,130,246,.8)', stack:'s',borderRadius:2,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:9,padding:10,font:{size:10}}},
+        tooltip:{callbacks:{title:i=>chartOrder[i[0].dataIndex][1].dn,label:i=>` ${i.dataset.label}: ${i.raw}`}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{maxRotation:45,font:{size:9}}},
+              y:{stacked:true,grid:{color:'#f0f2f5'},ticks:{stepSize:5}}}}}));
+
+  // ── PR chart (supplementary) ─────────────────────────
+  dvCharts.push(new Chart(document.getElementById('dv-prChart'),{type:'bar',
+    data:{labels:cLabels,datasets:[
+      {label:'Authored', data:chartOrder.map(([,d])=>d.prs.authored),  backgroundColor:'rgba(79,70,229,.82)', borderRadius:3,borderSkipped:false},
+      {label:'Reviewed', data:chartOrder.map(([,d])=>d.prs.reviewed),  backgroundColor:'rgba(139,92,246,.55)',borderRadius:3,borderSkipped:false},
+      {label:'Merged',   data:chartOrder.map(([,d])=>d.prs.merged),    backgroundColor:'rgba(16,185,129,.75)',borderRadius:3,borderSkipped:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{boxWidth:9,padding:10,font:{size:10}}},
+        tooltip:{callbacks:{title:i=>chartOrder[i[0].dataIndex][1].dn,label:i=>` ${i.dataset.label}: ${i.raw}`}}},
+      scales:{x:{grid:{display:false},ticks:{maxRotation:45,font:{size:9}}},
+              y:{grid:{color:'#f0f2f5'},ticks:{stepSize:2}}}}}));
+
+  // ── quality signals ──────────────────────────────────
+  const flags=[];
+  const ctAvgNum=ctSrc.length?ctSrc.reduce((a,b)=>a+b,0)/ctSrc.length:8;
+  members.forEach(([name,d])=>{
+    const dn=d.dn||name;
+    const rr=dvReopenRate(d);
+    if(rr!==null&&rr>=15) flags.push({name:dn,sev:'high',  sig:`Reopen rate ${rr}%`,detail:`${d.prs.reopened} of ${d.total} tickets reopened — review testing coverage and acceptance criteria`});
+    if(rr!==null&&rr>=8&&rr<15) flags.push({name:dn,sev:'medium',sig:`Reopen rate ${rr}%`,detail:'Elevated reopen rate — monitor trend next sprint'});
+    if(d.prs.noLinkedPR>2) flags.push({name:dn,sev:'medium',sig:`${d.prs.noLinkedPR} tickets without linked PR`,detail:'Traceability gap — consider enforcing PR linking policy in Azure DevOps'});
+    if(d.cycleTime&&d.cycleTime>ctAvgNum*1.6) flags.push({name:dn,sev:'medium',sig:`Cycle time ${d.cycleTime.toFixed(1)}d (avg ${ctAvgNum.toFixed(1)}d)`,detail:'Active → Done is >1.6× team average — check for blocking dependencies or scope creep'});
+    if(d.total>0&&d.qaFlow===0) flags.push({name:dn,sev:'low',sig:`${d.total} tickets — no QA handoff detected`,detail:'All attribution inferred from most-recent assignee. May not follow standard QA gate (Aesha / Ijaz), or names differ in ADO vs expected.'});
+    if(d.dataSource==='live-only') flags.push({name:dn,sev:'low',sig:'ADO contributor — not in Clockify',detail:'Active in Azure DevOps but no Clockify time entry found — verify time tracking'});
+  });
+  // Note on reopen data limitation
+  flags.push({name:'ⓘ Note',sev:'low',sig:'Reopen rates shown as 0 unless revision history was fetched',detail:'Accurate reopen counts require per-ticket revision-history queries — values currently reflect what ADO returns in the closed ticket summary only.'});
+  const sevOrder={high:0,medium:1,low:2};
+  flags.sort((a,b)=>sevOrder[a.sev]-sevOrder[b.sev]);
+  document.getElementById('dv-quality').innerHTML=flags.length
+    ? flags.map(f=>`<tr>
+        <td style="font-weight:600">${f.name}</td>
+        <td><span class="pill ${f.sev==='high'?'plo':f.sev==='medium'?'pmd':'pgr'}">${f.sev}</span></td>
+        <td>${f.sig}</td>
+        <td style="color:var(--muted);font-size:.71rem">${f.detail}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--muted)">No quality signals flagged this month ✓</td></tr>';
+
+  // ── sprint / version breakdown table ─────────────────
+  const allSV=[...new Set(members.flatMap(([,d])=>Object.keys(d.bySV)))].sort();
+  const spDevs=[...members].sort((a,b)=>b[1].total-a[1].total);
+  let spHtml=`<thead><tr><th>Developer</th><th>Total</th>${allSV.map(s=>`<th title="${s}">${s.length>22?s.slice(0,20)+'…':s}</th>`).join('')}</tr></thead><tbody>`;
+  spDevs.forEach(([name,d])=>{
+    const tot=d.total;
+    const qaConf=d.total>0?Math.round(d.qaFlow/d.total*100):0;
+    spHtml+=`<tr style="${d.qaFlow>0?'font-weight:600':'opacity:.85'}">
+      <td>${d.dn||name}${d.qaFlow>0?` <span style="font-size:.6rem;color:#10b981">✓</span>`:''}</td>
+      <td style="font-weight:700">${tot}</td>
+      ${allSV.map(s=>{
+        const c=d.bySV[s]||0;
+        return c>0
+          ?`<td><span style="font-weight:700;color:#4f46e5">${c}</span><div style="height:3px;background:#4f46e5;opacity:.6;border-radius:2px;margin-top:2px;width:${Math.min(100,Math.round(c/tot*100))}%"></div></td>`
+          :`<td style="color:var(--border)">—</td>`;
+      }).join('')}
+    </tr>`;
+  });
+  const totRow=`<tr style="font-weight:700;border-top:2px solid var(--border);background:var(--bg)"><td>Total</td><td>${members.reduce((s,[,d])=>s+d.total,0)}</td>${allSV.map(s=>{const t=members.reduce((sum,[,d])=>sum+(d.bySV[s]||0),0);return`<td style="${t?'color:#4f46e5':''}">${t||'—'}</td>`;}).join('')}</tr>`;
+  document.getElementById('dv-sprint-tbody').innerHTML=spHtml+totRow+'</tbody>';
+}
+
+// ══════════════════ DRILL-DOWN PANEL ══════════════════
+let panelCharts=[];
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+  panelCharts.forEach(c=>c&&c.destroy()); panelCharts=[];
+}
+function openPanel(name){
+  const v=USERS[name]; if(!v) return;
+  panelCharts.forEach(c=>c&&c.destroy()); panelCharts=[];
+
+  document.getElementById('panelName').textContent=name;
+  const eff=v.total>0?(v.dev/v.total*100).toFixed(0):0;
+
+  document.getElementById('panelStats').innerHTML=
+    `<div class="ps"><div class="psl">Total</div><div class="psv">${v.total.toFixed(1)}h</div></div>
+     <div class="ps"><div class="psl">Dev</div><div class="psv" style="color:var(--dev)">${v.dev.toFixed(1)}h</div></div>
+     <div class="ps"><div class="psl">Meetings</div><div class="psv" style="color:var(--mtg)">${v.mtg.toFixed(1)}h</div></div>
+     <div class="ps"><div class="psl">Dev %</div><div class="psv" style="color:var(--green)">${eff}%</div></div>
+     <div class="ps"><div class="psl">Type</div><div class="psv" style="font-size:.9rem">${v.full?'Full-time':'Part-time'}</div></div>
+     <div class="ps"><div class="psl">Entries</div><div class="psv" style="font-size:.9rem">${Object.values(v.p).reduce((a,b)=>a+b,0).toFixed(0)}<span style="font-size:.7rem">h</span></div></div>`;
+
+  // Client chart
+  const cKeys=Object.keys(v.c).sort((a,b)=>v.c[b]-v.c[a]);
+  panelCharts.push(new Chart(document.getElementById('panelClientChart'),{type:'bar',
+    data:{labels:cKeys,datasets:[{data:cKeys.map(k=>v.c[k]),backgroundColor:cKeys.map(k=>CLIENT_COLORS[k]||'#94a3b8'),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.raw.toFixed(1)}h`}}},
+      scales:{x:{grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}},y:{grid:{display:false}}}}}));
+
+  // Product chart
+  const pKeys=Object.keys(v.p).sort((a,b)=>v.p[b]-v.p[a]).slice(0,6);
+  panelCharts.push(new Chart(document.getElementById('panelProdChart'),{type:'bar',
+    data:{labels:pKeys,datasets:[{data:pKeys.map(k=>v.p[k]),backgroundColor:'rgba(79,70,229,.75)',borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.raw.toFixed(1)}h`}}},
+      scales:{x:{grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}},y:{grid:{display:false}}}}}));
+
+  // Work type chart
+  const wtKeys=Object.keys(v.w).filter(k=>k!=='Meeting').sort((a,b)=>v.w[b]-v.w[a]);
+  panelCharts.push(new Chart(document.getElementById('panelWtChart'),{type:'bar',
+    data:{labels:wtKeys,datasets:[{data:wtKeys.map(k=>v.w[k]||0),backgroundColor:wtKeys.map(k=>WT_COLORS[k]||'#94a3b8'),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:i=>` ${i.raw.toFixed(1)}h`}}},
+      scales:{x:{grid:{color:'#f0f2f5'},ticks:{callback:v=>v+'h'}},y:{grid:{display:false}}}}}));
+
+  // Flags
+  const flags=[];
+  const unknownHrs=v.w['Unknown']||0;
+  if(unknownHrs>0) flags.push(`⚠ ${unknownHrs.toFixed(1)}h (${(unknownHrs/v.total*100).toFixed(0)}%) could not be classified by work type — no matching keywords in descriptions.`);
+  const clientsMed=Object.keys(v.c).filter(c=>['ENEO','UAQ','RTA','Digitizeme'].includes(c));
+  if(clientsMed.length) flags.push(`🔍 Client(s) ${clientsMed.join(', ')} detected via keyword matching (medium confidence). Verify against Clockify tags.`);
+
+  document.getElementById('panelFlags').innerHTML=flags.map(f=>`<div class="flag flag-low">${f}</div>`).join('');
+
+  // ── DevOps / Attribution section ────────────────────
+  const dv=ATTRIBUTION[name];
+  if(dv){
+    const qc  =attrQaConf(dv);
+    const ct  =dv.cycleTime?dv.cycleTime.toFixed(1)+'d':'—';
+    const tot =dv.total||1;
+    const SVCOLS=['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4'];
+
+    document.getElementById('panelDvStats').innerHTML=`
+      <div class="ps"><div class="psl">Attributed</div><div class="psv">${dv.total}</div></div>
+      <div class="ps"><div class="psl">QA Flow</div><div class="psv" style="color:#10b981">${dv.qaFlow}</div></div>
+      <div class="ps"><div class="psl">Inferred</div><div class="psv" style="color:#f59e0b">${dv.inferred}</div></div>
+      <div class="ps"><div class="psl">QA Conf%</div><div class="psv"><span class="pill ${attrConfPill(qc)}">${qc}%</span></div></div>
+      <div class="ps"><div class="psl">Cycle Time</div><div class="psv" style="font-size:.85rem">${ct}</div></div>
+      <div class="ps"><div class="psl">Attribution</div><div class="psv" style="font-size:.72rem;color:${dv.qaFlow>0?'#10b981':'#f59e0b'}">${dv.qaFlow>0?'QA-flow':'Inferred'}</div></div>`;
+
+    // Ticket type mix
+    document.getElementById('panelTicketMix').innerHTML=`
+      <div class="pmix-item"><div class="mv" style="color:#ef4444">${dv.byType.Bug}</div><div class="ml">Bug (${Math.round(dv.byType.Bug/tot*100)}%)</div></div>
+      <div class="pmix-item"><div class="mv" style="color:#10b981">${dv.byType.Feature}</div><div class="ml">Feature (${Math.round(dv.byType.Feature/tot*100)}%)</div></div>
+      <div class="pmix-item"><div class="mv" style="color:#3b82f6">${dv.byType.Task}</div><div class="ml">Task (${Math.round(dv.byType.Task/tot*100)}%)</div></div>`;
+
+    // Sprint/version breakdown (replaces complexity bar)
+    const svEntries=Object.entries(dv.bySV);
+    document.getElementById('panelComplexity').innerHTML=svEntries.length?`
+      <div class="cx-bar" style="height:10px;border-radius:5px;margin-bottom:6px">
+        ${svEntries.map(([,c],i)=>`<div style="width:${Math.round(c/tot*100)}%;background:${SVCOLS[i%SVCOLS.length]}" title="${c} tickets"></div>`).join('')}
+      </div>
+      <div class="cx-legend" style="flex-direction:column;gap:3px;font-size:.68rem">
+        ${svEntries.map(([s,c],i)=>`<span><span style="color:${SVCOLS[i%SVCOLS.length]}">●</span> ${s} — <strong>${c}</strong> tickets (${Math.round(c/tot*100)}%)</span>`).join('')}
+      </div>`:'<div style="font-size:.7rem;color:var(--muted)">No sprint/version data</div>';
+
+    // PR mix
+    document.getElementById('panelPRMix').innerHTML=`
+      <div class="pmix-item"><div class="mv" style="color:var(--dev)">${dv.prs.authored}</div><div class="ml">Authored</div></div>
+      <div class="pmix-item"><div class="mv" style="color:#8b5cf6">${dv.prs.reviewed}</div><div class="ml">Reviewed</div></div>
+      <div class="pmix-item"><div class="mv" style="color:#f59e0b">${dv.prs.approved}</div><div class="ml">Approved</div></div>
+      <div class="pmix-item"><div class="mv" style="color:#10b981">${dv.prs.merged}</div><div class="ml">Merged</div></div>`;
+
+    // Per-person flags
+    const dvF=[];
+    if(dv.qaFlow===0&&dv.total>0) dvF.push(`⚠ All ${dv.total} tickets attributed via inference (no QA handoff detected) — lower confidence`);
+    if(dv.cycleTime&&dv.cycleTime>15) dvF.push(`⏱ Cycle time ${dv.cycleTime.toFixed(1)}d — check for blocking dependencies`);
+    if(dv.dataSource==='live-only') dvF.push(`📋 Not found in Clockify — time tracking for this contributor may be missing`);
+    document.getElementById('panelDvFlags').innerHTML=dvF.map(f=>`<div class="flag flag-low" style="margin-top:5px">${f}</div>`).join('');
+
+    document.getElementById('panelDvSection').style.display='block';
+  } else {
+    document.getElementById('panelDvSection').style.display='none';
+  }
+
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+</script>
+</body>
+</html>

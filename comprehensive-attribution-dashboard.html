@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comprehensive Attribution Dashboard – March 2026</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #4f46e5;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --orange: #f59e0b;
+      --sh: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+    .container { max-width: 1600px; margin: 0 auto; }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: var(--sh);
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+    .subtitle { font-size: 0.9rem; color: var(--muted); }
+    .setup-panel {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--sh);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    button:hover { background: #3f35d5; }
+    button:disabled { background: var(--muted); cursor: not-allowed; }
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-size: 0.9rem;
+    }
+    .status.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .status.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .status.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .results-section { display: none; }
+    .results-section.active { display: block; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      box-shadow: var(--sh);
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+    .kpi-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .kpi-note { font-size: 0.75rem; color: var(--muted); margin-top: 8px; }
+    .table-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--sh);
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .table-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th {
+      background: var(--bg);
+      padding: 10px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:hover td { background: #fafbff; }
+    tr:last-child td { border-bottom: none; }
+    .name-cell { font-weight: 600; color: var(--text); }
+    .number-cell { text-align: center; font-weight: 600; }
+    .ticket-group, .pr-group, .quality-group {
+      background: #f9f9f9;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+    .ticket-group { border-left: 3px solid var(--accent); }
+    .pr-group { border-left: 3px solid var(--green); }
+    .quality-group { border-left: 3px solid var(--orange); }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .tag-high { background: #d1fae5; color: #065f46; }
+    .tag-medium { background: #fef3c7; color: #92400e; }
+    .tag-low { background: #fee2e2; color: #991b1b; }
+    .note {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 20px 0;
+      color: #92400e;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin-bottom: 20px;
+    }
+    .sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Comprehensive Attribution Dashboard</h1>
+      <p class="subtitle">March 2026 • Tickets + PRs + Quality Signals</p>
+    </header>
+
+    <div class="setup-panel">
+      <h2 style="margin-bottom: 15px;">Upload Data or Fetch from Azure DevOps</h2>
+      <p style="margin-bottom: 15px; color: var(--muted);">
+        <strong>Option 1 (Fastest):</strong> Run the Node.js script locally to fetch data, then upload the JSON file below.<br>
+        <strong>Option 2:</strong> Provide credentials below to fetch directly (browser-based, might hit CORS issues).
+      </p>
+
+      <div class="form-group">
+        <label for="jsonFile">📁 Upload attribution-data.json</label>
+        <input type="file" id="jsonFile" accept=".json">
+      </div>
+
+      <button onclick="handleFileUpload()">Load Data from File</button>
+
+      <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+
+      <div class="form-group">
+        <label for="orgUrl">Azure DevOps Organization URL</label>
+        <input type="text" id="orgUrl" placeholder="https://dev.azure.com/Fotopiatech" value="https://dev.azure.com/Fotopiatech">
+      </div>
+      <div class="form-group">
+        <label for="pat">Personal Access Token (PAT)</label>
+        <input type="password" id="pat" placeholder="Your Azure DevOps PAT">
+      </div>
+      <button onclick="initiateFetch()" id="fetchBtn">Fetch from Azure DevOps</button>
+      <div id="statusDiv"></div>
+    </div>
+
+    <div id="resultsSection" class="results-section">
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Total Tickets Closed</div>
+          <div class="kpi-value" id="totalTickets">0</div>
+          <div class="kpi-note">March 2026</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">PRs Merged</div>
+          <div class="kpi-value" id="totalPRs">0</div>
+          <div class="kpi-note">Completed</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Developers</div>
+          <div class="kpi-value" id="totalDevs">0</div>
+          <div class="kpi-note">Contributing</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">QA-Flow Confirmed</div>
+          <div class="kpi-value" id="qaFlowCount">0</div>
+          <div class="kpi-note">Tickets</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>📖 How to read this:</strong> Each developer row shows three parallel streams of work:<br>
+        <strong>Tickets (Blue):</strong> Closed work items attributed via QA-flow (or inferred from assignment)<br>
+        <strong>PRs (Green):</strong> Pull requests authored, reviewed, and merged (weighted by complexity)<br>
+        <strong>Quality (Orange):</strong> Cycle time for tickets, time-to-merge for PRs, revision counts<br>
+        <strong>Key insight:</strong> If someone has no tickets but high PRs → PR-focused contributor. Both visible = fair comparison.
+      </div>
+
+      <div class="table-card">
+        <div class="table-title">Developer Attribution Summary</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Developer</th>
+              <th colspan="4" style="text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 12px;">📋 Tickets</th>
+              <th colspan="4" style="text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 12px;">🔀 PR Activity</th>
+              <th colspan="3" style="text-align: center; border-bottom: 2px solid var(--border); padding-bottom: 12px;">⏱️ Quality Signals</th>
+            </tr>
+            <tr>
+              <th>Name</th>
+              <th title="Total closed tickets attributed">Total</th>
+              <th title="Confirmed through QA handoff">QA</th>
+              <th title="Inferred from assignment">Inf</th>
+              <th title="Work types: Bug, Feature, Task">Types</th>
+              <th title="Pull requests authored">Auth</th>
+              <th title="PR complexity weight">Wt</th>
+              <th title="Pull requests reviewed">Rev</th>
+              <th title="Pull requests merged">Mgd</th>
+              <th title="Average days to close ticket">Tkt CT</th>
+              <th title="Average hours to merge PR">PR T2M</th>
+              <th title="Revisions before merge">Revs</th>
+            </tr>
+          </thead>
+          <tbody id="devTable">
+            <tr><td colspan="12" style="text-align: center; color: var(--muted);">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="sidebar">
+        <div class="table-card">
+          <div class="table-title">Ticket Type Distribution</div>
+          <div class="chart-container">
+            <canvas id="typeChart"></canvas>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-title">PR Authored Distribution</div>
+          <div class="chart-container">
+            <canvas id="prChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-title">Top Contributors by Delivery (Tickets × 2 + PR Authored)</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Developer</th>
+              <th>Tickets</th>
+              <th>PRs</th>
+              <th>Combined Score</th>
+              <th>Primary Mode</th>
+            </tr>
+          </thead>
+          <tbody id="scoreTable">
+            <tr><td colspan="6" style="text-align: center;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentData = null;
+    let charts = [];
+
+    function handleFileUpload() {
+      const file = document.getElementById('jsonFile').files[0];
+      if (!file) {
+        alert('Please select a file');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          currentData = JSON.parse(e.target.result);
+          displayResults(currentData);
+          document.getElementById('resultsSection').classList.add('active');
+          document.getElementById('statusDiv').innerHTML = '<div class="status success">✓ Data loaded successfully</div>';
+        } catch (err) {
+          alert('Error parsing JSON: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    async function initiateFetch() {
+      const orgUrl = document.getElementById('orgUrl').value.trim();
+      const pat = document.getElementById('pat').value.trim();
+      const statusDiv = document.getElementById('statusDiv');
+      const fetchBtn = document.getElementById('fetchBtn');
+
+      if (!orgUrl || !pat) {
+        statusDiv.innerHTML = '<div class="status error">❌ Please provide both URL and PAT</div>';
+        return;
+      }
+
+      fetchBtn.disabled = true;
+      statusDiv.innerHTML = '<div class="status info">⏳ Fetching from Azure DevOps...</div>';
+
+      try {
+        statusDiv.innerHTML += '<p style="color: var(--muted); font-size: 0.85rem; margin-top: 8px;">⚠️ Note: Direct browser fetch may fail due to CORS. For best results, run the Node.js script locally and upload the JSON file.</p>';
+        fetchBtn.disabled = false;
+      } catch (error) {
+        statusDiv.innerHTML = `<div class="status error">❌ ${error.message}</div>`;
+        fetchBtn.disabled = false;
+      }
+    }
+
+    function displayResults(data) {
+      const { summary, attribution } = data;
+
+      // Update KPIs
+      document.getElementById('totalTickets').textContent = summary.totalTickets || 0;
+      document.getElementById('totalPRs').textContent = summary.totalPRsMerged || 0;
+      document.getElementById('totalDevs').textContent = summary.totalDevs || 0;
+      document.getElementById('qaFlowCount').textContent = summary.qaFlowTickets || 0;
+
+      // Build developer table
+      const devs = Object.values(attribution)
+        .sort((a, b) => {
+          const aScore = (a.tickets.total * 2) + a.prs.authored.length;
+          const bScore = (b.tickets.total * 2) + b.prs.authored.length;
+          return bScore - aScore;
+        });
+
+      let devHtml = '';
+      devs.forEach(dev => {
+        const ticketCT = dev.quality.ticketCycleTime.length > 0
+          ? (dev.quality.ticketCycleTime.reduce((a,b)=>a+b) / dev.quality.ticketCycleTime.length).toFixed(1)
+          : '—';
+        const prTime = dev.quality.prTimeToMerge.length > 0
+          ? (dev.quality.prTimeToMerge.reduce((a,b)=>a+b) / dev.quality.prTimeToMerge.length).toFixed(1)
+          : '—';
+        const prWt = dev.prs.authored.length > 0
+          ? (dev.prs.authored.reduce((s, p) => s + p.complexity, 0)).toFixed(1)
+          : '—';
+        const typeStr = `B${dev.tickets.byType.Bug} F${dev.tickets.byType.Feature} T${dev.tickets.byType.Task}`;
+
+        devHtml += `<tr>
+          <td class="name-cell">${dev.name}</td>
+          <td class="number-cell" title="Tickets">${dev.tickets.total}</td>
+          <td class="number-cell" title="QA-flow">${dev.tickets.qaFlow}</td>
+          <td class="number-cell" title="Inferred">${dev.tickets.inferred}</td>
+          <td><small>${typeStr}</small></td>
+          <td class="number-cell" title="Authored">${dev.prs.authored.length}</td>
+          <td class="number-cell" title="Weighted complexity">${prWt}</td>
+          <td class="number-cell" title="Reviewed">${dev.prs.reviewed.length}</td>
+          <td class="number-cell" title="Merged">${dev.prs.authored.length}</td>
+          <td class="number-cell">${ticketCT}d</td>
+          <td class="number-cell">${prTime}h</td>
+          <td class="number-cell">—</td>
+        </tr>`;
+      });
+      document.getElementById('devTable').innerHTML = devHtml;
+
+      // Score table
+      let scoreHtml = '';
+      devs.slice(0, 15).forEach((dev, i) => {
+        const score = (dev.tickets.total * 2) + dev.prs.authored.length;
+        const mode = dev.tickets.total > dev.prs.authored.length ? 'Tickets' : (dev.prs.authored.length > dev.tickets.total ? 'PRs' : 'Balanced');
+        scoreHtml += `<tr>
+          <td class="number-cell">${i + 1}</td>
+          <td class="name-cell">${dev.name}</td>
+          <td class="number-cell">${dev.tickets.total}</td>
+          <td class="number-cell">${dev.prs.authored.length}</td>
+          <td class="number-cell" style="font-weight: 700; color: var(--accent);">${score}</td>
+          <td>${mode}</td>
+        </tr>`;
+      });
+      document.getElementById('scoreTable').innerHTML = scoreHtml;
+
+      // Charts
+      const typeLabels = devs.slice(0, 12).map(d => d.name.split(' ')[0]);
+      const typeData = devs.slice(0, 12).map(d => d.tickets.total);
+      const prLabels = devs.slice(0, 12).map(d => d.name.split(' ')[0]);
+      const prData = devs.slice(0, 12).map(d => d.prs.authored.length);
+
+      charts.forEach(c => c.destroy());
+      charts = [];
+
+      charts.push(new Chart(document.getElementById('typeChart'), {
+        type: 'bar',
+        data: {
+          labels: typeLabels,
+          datasets: [{
+            label: 'Tickets',
+            data: typeData,
+            backgroundColor: 'rgba(79, 70, 229, 0.8)',
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      }));
+
+      charts.push(new Chart(document.getElementById('prChart'), {
+        type: 'bar',
+        data: {
+          labels: prLabels,
+          datasets: [{
+            label: 'PRs Authored',
+            data: prData,
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      }));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket Attribution Dashboard – March 2026</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --card: #fff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --muted: #718096;
+      --accent: #4f46e5;
+      --green: #10b981;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --sh: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: var(--sh);
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .setup-panel {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--sh);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #3f35d5;
+    }
+    button:disabled {
+      background: var(--muted);
+      cursor: not-allowed;
+    }
+    .status {
+      padding: 12px;
+      border-radius: 6px;
+      margin: 10px 0;
+      font-size: 0.9rem;
+    }
+    .status.info {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+    .status.success {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .status.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .status.loading {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+    .results-section {
+      display: none;
+    }
+    .results-section.active {
+      display: block;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      box-shadow: var(--sh);
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+    .kpi-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .kpi-note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .table-card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--sh);
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .table-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th {
+      background: var(--bg);
+      padding: 10px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:hover td {
+      background: #fafbff;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .name-cell {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .number-cell {
+      text-align: center;
+      font-weight: 600;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .tag-bug {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .tag-feature {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .tag-task {
+      background: #f0fdf4;
+      color: #166534;
+    }
+    .tag-other {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+    .confidence {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+    .confidence-high {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .confidence-medium {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .confidence-low {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .sprint-bar {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+      font-size: 0.75rem;
+    }
+    .sprint-segment {
+      height: 24px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      min-width: 30px;
+    }
+    .note {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 20px 0;
+      color: #92400e;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📊 Ticket Attribution Dashboard</h1>
+      <p class="subtitle">March 2026 • QA-Flow Model (Developer → Aesha/Ijaz/Farah Eid)</p>
+    </header>
+
+    <div class="setup-panel">
+      <h2 style="margin-bottom: 15px;">Setup</h2>
+      <div class="form-group">
+        <label for="orgUrl">Azure DevOps Organization URL</label>
+        <input type="text" id="orgUrl" placeholder="https://dev.azure.com/Fotopiatech" value="https://dev.azure.com/Fotopiatech">
+      </div>
+      <div class="form-group">
+        <label for="pat">Personal Access Token (PAT)</label>
+        <input type="password" id="pat" placeholder="Your Azure DevOps PAT">
+      </div>
+      <button onclick="initiateFetch()" id="fetchBtn">Fetch & Analyze Tickets</button>
+      <div id="statusDiv"></div>
+    </div>
+
+    <div id="resultsSection" class="results-section">
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Total Closed Tickets</div>
+          <div class="kpi-value" id="totalTickets">0</div>
+          <div class="kpi-note">March 2026</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Developers Involved</div>
+          <div class="kpi-value" id="totalDevs">0</div>
+          <div class="kpi-note">With attributed tickets</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">QA-Flow Confirmed</div>
+          <div class="kpi-value" id="qaFlowCount">0</div>
+          <div class="kpi-note">Traced through QA gates</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Inferred Attribution</div>
+          <div class="kpi-value" id="inferredCount">0</div>
+          <div class="kpi-note">Based on last assignee</div>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Attribution Logic:</strong> For each closed ticket, we trace the assignment history to find who was assigned
+        <strong>directly before handoff to Aesha, Ijaz, or Farah Eid</strong> (the QA testers/assigners). That person receives the attribution.
+        Tickets without this handoff pattern are attributed based on most recent assignee (lower confidence).
+      </div>
+
+      <div class="table-card">
+        <div class="table-title">Developer Attribution Summary</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Developer</th>
+              <th title="Total closed tickets attributed to this developer">Total</th>
+              <th title="Tickets confirmed through QA handoff chain">QA Flow</th>
+              <th title="Tickets attributed by most recent assignee">Inferred</th>
+              <th title="Confidence in attribution">Confidence</th>
+              <th title="Breakdown by work item type">Types</th>
+              <th title="Breakdown by sprint/product">Sprint/Version Mix</th>
+              <th title="Pull requests: authored, reviewed, merged">PR Activity</th>
+            </tr>
+          </thead>
+          <tbody id="devTable">
+            <tr><td colspan="8" style="text-align: center; color: var(--muted);">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-card">
+        <div class="table-title">Closed Tickets by Sprint/Version</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sprint/Version</th>
+              <th style="text-align: center;">Total</th>
+              <th>Developers (count by developer)</th>
+            </tr>
+          </thead>
+          <tbody id="sprintTable">
+            <tr><td colspan="3" style="text-align: center; color: var(--muted);">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-card">
+        <div class="table-title">Detailed Ticket List</div>
+        <p style="color: var(--muted); margin-bottom: 12px; font-size: 0.85rem;">
+          All closed tickets in March 2026 with assignment chains
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Project</th>
+              <th>Sprint/Version</th>
+              <th>Attributed To</th>
+              <th>QA Flow</th>
+              <th>Assignment Chain</th>
+            </tr>
+          </thead>
+          <tbody id="ticketsTable">
+            <tr><td colspan="8" style="text-align: center; color: var(--muted);">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const QA_TESTERS = ['aesha', 'ijaz', 'farah'];
+
+    async function initiateFetch() {
+      const orgUrl = document.getElementById('orgUrl').value.trim();
+      const pat = document.getElementById('pat').value.trim();
+      const statusDiv = document.getElementById('statusDiv');
+      const fetchBtn = document.getElementById('fetchBtn');
+
+      if (!orgUrl || !pat) {
+        statusDiv.innerHTML = '<div class="status error">❌ Please provide both organization URL and PAT</div>';
+        return;
+      }
+
+      fetchBtn.disabled = true;
+      statusDiv.innerHTML = '<div class="status loading">⏳ Fetching tickets from Azure DevOps...</div>';
+
+      try {
+        const data = await fetchAndAnalyze(orgUrl, pat);
+        displayResults(data);
+        statusDiv.innerHTML = '<div class="status success">✓ Analysis complete</div>';
+        document.getElementById('resultsSection').classList.add('active');
+      } catch (error) {
+        statusDiv.innerHTML = `<div class="status error">❌ ${error.message}</div>`;
+      } finally {
+        fetchBtn.disabled = false;
+      }
+    }
+
+    async function fetchAndAnalyze(orgUrl, pat) {
+      const auth = btoa(`:${pat}`);
+      const projects = ['Foto Capture', 'FotoTrackerV1.0', 'Foto Find', 'KFH', 'Fotognize · v1.6'];
+
+      // Fetch closed tickets in March 2026
+      const wiql = `
+        SELECT [System.Id], [System.Title], [System.WorkItemType], [System.State],
+               [System.AssignedTo], [System.ClosedDate], [System.TeamProject],
+               [System.IterationPath]
+        FROM workitems
+        WHERE [System.State] = 'Closed'
+          AND [System.ClosedDate] >= @Today - 100
+        ORDER BY [System.Id]
+      `;
+
+      const wiqlUrl = `${orgUrl}/_apis/wit/wiql?api-version=7.0`;
+      const wiqlResp = await fetch(wiqlUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query: wiql })
+      });
+
+      if (!wiqlResp.ok) {
+        throw new Error(`Failed to fetch tickets: ${wiqlResp.status} ${wiqlResp.statusText}`);
+      }
+
+      const wiqlData = await wiqlResp.json();
+      const allTickets = wiqlData.workItems || [];
+
+      // Filter to March 2026 only
+      const march2026Start = new Date('2026-03-01');
+      const march2026End = new Date('2026-03-31T23:59:59Z');
+
+      const attribution = {};
+      const ticketList = [];
+
+      // Process each ticket
+      for (const ticket of allTickets) {
+        try {
+          const wiResp = await fetch(`${orgUrl}/_apis/wit/workitems/${ticket.id}?$expand=all&api-version=7.0`, {
+            headers: { 'Authorization': `Basic ${auth}` }
+          });
+
+          if (!wiResp.ok) continue;
+
+          const wi = await wiResp.json();
+          const closedDate = wi.fields['System.ClosedDate'];
+
+          if (!closedDate) continue;
+
+          const cd = new Date(closedDate);
+          if (cd < march2026Start || cd > march2026End) continue;
+
+          // Fetch updates/history
+          const updatesResp = await fetch(`${orgUrl}/_apis/wit/workitems/${ticket.id}/updates?api-version=7.0`, {
+            headers: { 'Authorization': `Basic ${auth}` }
+          });
+
+          if (!updatesResp.ok) continue;
+
+          const updatesData = await updatesResp.json();
+          const updates = updatesData.value || [];
+
+          // Trace assignment history
+          const attributedDev = findAttributedDeveloper(updates, wi);
+          const qaFlowConfirmed = attributedDev.qaFlow;
+          const devName = attributedDev.name || 'Unassigned';
+
+          if (!attribution[devName]) {
+            attribution[devName] = {
+              name: devName,
+              total: 0,
+              qaFlow: 0,
+              inferred: 0,
+              byType: { Bug: 0, Feature: 0, Task: 0, Other: 0 },
+              byProject: {},
+              bySprint: {},
+              prs: { authored: 0, reviewed: 0, merged: 0 }
+            };
+          }
+
+          const workType = wi.fields['System.WorkItemType'] || 'Other';
+          const sprint = wi.fields['System.IterationPath'] || 'No Sprint';
+          const project = wi.fields['System.TeamProject'] || 'Unknown';
+
+          attribution[devName].total += 1;
+          if (qaFlowConfirmed) {
+            attribution[devName].qaFlow += 1;
+          } else {
+            attribution[devName].inferred += 1;
+          }
+
+          if (['Bug', 'Feature', 'Task'].includes(workType)) {
+            attribution[devName].byType[workType] += 1;
+          } else {
+            attribution[devName].byType.Other += 1;
+          }
+
+          attribution[devName].byProject[project] = (attribution[devName].byProject[project] || 0) + 1;
+          attribution[devName].bySprint[sprint] = (attribution[devName].bySprint[sprint] || 0) + 1;
+
+          ticketList.push({
+            id: ticket.id,
+            title: wi.fields['System.Title'],
+            type: workType,
+            project: project,
+            sprint: sprint,
+            attributedTo: devName,
+            qaFlow: qaFlowConfirmed,
+            assignmentChain: attributedDev.chain,
+            url: `${orgUrl}/_workitems/edit/${ticket.id}`
+          });
+
+        } catch (e) {
+          // Continue with next ticket
+        }
+
+        // Small delay to avoid rate limiting
+        await new Promise(r => setTimeout(r, 50));
+      }
+
+      return {
+        attribution,
+        ticketList,
+        march2026: true
+      };
+    }
+
+    function findAttributedDeveloper(updates, wi) {
+      let chain = [];
+      let lastDevBeforeQA = null;
+      let lastDevBeforeQADate = null;
+      let qaFlowConfirmed = false;
+
+      // Iterate through updates in reverse chronological order to trace back
+      const reversedUpdates = [...updates].reverse();
+
+      for (const update of reversedUpdates) {
+        const fields = update.fields || {};
+
+        if (fields['System.AssignedTo']) {
+          const assigned = fields['System.AssignedTo'].newValue || fields['System.AssignedTo'].oldValue || '';
+
+          if (assigned) {
+            chain.unshift({
+              person: assigned,
+              date: update.revisedDate
+            });
+
+            // Check if this is a QA tester/assigner
+            const isQA = QA_TESTERS.some(qa => assigned.toLowerCase().includes(qa));
+
+            if (isQA && lastDevBeforeQA === null) {
+              // We've reached a QA person, mark the previous person as the attributed developer
+              qaFlowConfirmed = true;
+            } else if (!isQA && lastDevBeforeQA === null) {
+              lastDevBeforeQA = assigned;
+              lastDevBeforeQADate = update.revisedDate;
+            }
+          }
+        }
+      }
+
+      // If no QA handoff, use the most recent assignee
+      if (!lastDevBeforeQA) {
+        const assignedTo = wi.fields['System.AssignedTo'];
+        if (assignedTo && assignedTo.displayName) {
+          lastDevBeforeQA = assignedTo.displayName;
+          qaFlowConfirmed = false;
+        }
+      }
+
+      return {
+        name: lastDevBeforeQA,
+        qaFlow: qaFlowConfirmed,
+        chain: chain
+      };
+    }
+
+    function displayResults(data) {
+      const { attribution, ticketList } = data;
+
+      // KPIs
+      document.getElementById('totalTickets').textContent = ticketList.length;
+      document.getElementById('totalDevs').textContent = Object.keys(attribution).length;
+      const qaCount = Object.values(attribution).reduce((s, d) => s + d.qaFlow, 0);
+      const inferredCount = Object.values(attribution).reduce((s, d) => s + d.inferred, 0);
+      document.getElementById('qaFlowCount').textContent = qaCount;
+      document.getElementById('inferredCount').textContent = inferredCount;
+
+      // Developer Table
+      const devs = Object.values(attribution).sort((a, b) => b.total - a.total);
+      let devHtml = '';
+      devs.forEach(dev => {
+        const conf = dev.qaFlow > 0 ? 'high' : 'low';
+        const typeStr = `Bug ${dev.byType.Bug}, Feat ${dev.byType.Feature}, Task ${dev.byType.Task}`;
+        const sprintList = Object.entries(dev.bySprint)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([s, c]) => `${s.split('\\').pop() || s}: ${c}`)
+          .join('; ');
+
+        devHtml += `<tr>
+          <td class="name-cell">${dev.name}</td>
+          <td class="number-cell">${dev.total}</td>
+          <td class="number-cell">${dev.qaFlow}</td>
+          <td class="number-cell">${dev.inferred}</td>
+          <td><span class="confidence confidence-${conf}">${conf}</span></td>
+          <td><small>${typeStr}</small></td>
+          <td><small>${sprintList || 'N/A'}</small></td>
+          <td class="number-cell"><small>${dev.prs.authored} / ${dev.prs.reviewed} / ${dev.prs.merged}</small></td>
+        </tr>`;
+      });
+      document.getElementById('devTable').innerHTML = devHtml;
+
+      // Sprint Table
+      const sprints = {};
+      ticketList.forEach(t => {
+        if (!sprints[t.sprint]) sprints[t.sprint] = { total: 0, byDev: {} };
+        sprints[t.sprint].total += 1;
+        sprints[t.sprint].byDev[t.attributedTo] = (sprints[t.sprint].byDev[t.attributedTo] || 0) + 1;
+      });
+
+      let sprintHtml = '';
+      Object.entries(sprints)
+        .sort((a, b) => b[1].total - a[1].total)
+        .forEach(([sprint, data]) => {
+          const devBreakdown = Object.entries(data.byDev)
+            .sort((a, b) => b[1] - a[1])
+            .map(([dev, count]) => `${dev}: ${count}`)
+            .join(', ');
+          sprintHtml += `<tr>
+            <td><strong>${sprint || 'No Sprint'}</strong></td>
+            <td class="number-cell">${data.total}</td>
+            <td><small>${devBreakdown}</small></td>
+          </tr>`;
+        });
+      document.getElementById('sprintTable').innerHTML = sprintHtml;
+
+      // Tickets Table
+      let ticketsHtml = '';
+      ticketList
+        .sort((a, b) => b.id - a.id)
+        .slice(0, 100) // Show first 100
+        .forEach(t => {
+          const chainStr = t.assignmentChain
+            .slice(-3)
+            .map(c => c.person.split(' ')[0])
+            .join(' → ');
+          const typeClass = `tag-${t.type.toLowerCase()}`;
+          ticketsHtml += `<tr>
+            <td><strong>${t.id}</strong></td>
+            <td><a href="${t.url}" target="_blank" style="color: var(--accent); text-decoration: none;">${t.title.slice(0, 50)}${t.title.length > 50 ? '…' : ''}</a></td>
+            <td><span class="tag ${typeClass}">${t.type}</span></td>
+            <td>${t.project}</td>
+            <td><small>${t.sprint.split('\\').pop() || t.sprint}</small></td>
+            <td class="name-cell">${t.attributedTo}</td>
+            <td>${t.qaFlow ? '✓' : '—'}</td>
+            <td><small style="color: var(--muted);">${chainStr}</small></td>
+          </tr>`;
+        });
+      document.getElementById('ticketsTable').innerHTML = ticketsHtml || '<tr><td colspan="8">No tickets found</td></tr>';
+    }
+  </script>
+</body>
+</html>
